@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.json">
+<title>🏆 Quiniela Mundial 2026</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="data.js"></script>
+<script type="module" src="firebase.js"></script>
+<script type="module" src="app.js"></script>
+</head>
+<body>
+
+<h1>🏆 Quiniela Mundial 2026</h1>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="resumen">🏆 Resumen</button>
+    <button class="tab-btn" data-tab="rankingTab">📊 Ranking</button>
+    <button class="tab-btn" data-tab="calendario">⚽ Calendario</button>
+    <button class="tab-btn" data-tab="estadisticas">📈 Stats</button>
+</div>
+
+<!-- RESUMEN -->
+<div id="resumen" class="tab-content active">
+    <div class="dashboard">
+        <div class="card"><h2>Participantes</h2><div class="big" id="totalPlayers">-</div></div>
+        <div class="card"><h2>Equipos vivos</h2><div class="big" id="aliveTeamsCount">-</div></div>
+        <div class="card"><h2>Ganador actual</h2><div class="big" id="winner" style="font-size:1rem">-</div></div>
+    </div>
+
+    <label style="font-size:.85rem;opacity:.6">🏆 Seleccionar campeón:</label>
+    <select id="championSelect"><option value="">— elige campeón —</option></select>
+    <p style="font-size:.75rem;opacity:.4;margin-top:6px">
+        🔴 = eliminado automáticamente · 🟡 = eliminado manual · toca un equipo para cambiar manual
+    </p>
+
+    <h2>👥 Participantes</h2>
+    <div id="participantsContainer"></div>
+</div>
+
+<!-- RANKING -->
+<div id="rankingTab" class="tab-content">
+    <h2>⭐ Ranking</h2>
+    <div id="ranking"></div>
+</div>
+
+<!-- CALENDARIO -->
+<div id="calendario" class="tab-content">
+    <h2>⚽ Calendario y Marcadores</h2>
+    <p style="font-size:.8rem;opacity:.5;margin-bottom:12px">Se actualiza automáticamente cada 5 minutos</p>
+    <div id="matchesContainer"></div>
+</div>
+
+<!-- STATS -->
+<div id="estadisticas" class="tab-content">
+    <h2>📈 Equipos vivos por participante</h2>
+    <canvas id="probabilityChart"></canvas>
+</div>
+
+</body>
+</html>
