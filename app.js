@@ -23,7 +23,8 @@ const es = n => NAME_MAP[n] || n;
 
 // ── Estado ─────────────────────────────────────────────────────────────
 let manualEliminated = [];
-let liveScores = {};   // enriquecido por la API
+let liveScores  = {};
+let autoChampion = "";   // campeón detectado automáticamente de la API
 let chart;
 
 // ── Mezcla datos locales + API ─────────────────────────────────────────
@@ -46,23 +47,36 @@ async function fetchLiveScores() {
         const res = await fetch(API_URL + "?t=" + Date.now());
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
+
         const map = {};
+        let champion = "";
+
         data.matches.forEach(m => {
             if (!m.score) return;
-            const key = `${es(m.team1)}|${es(m.team2)}`;
+            const homeEs = es(m.team1);
+            const awayEs = es(m.team2);
+            const key = `${homeEs}|${awayEs}`;
             map[key] = {
                 homeScore: m.score.ft[0], awayScore: m.score.ft[1],
                 htHome: m.score.ht?.[0] ?? null, htAway: m.score.ht?.[1] ?? null,
                 goals1: m.goals1 || [], goals2: m.goals2 || [],
             };
+            // Detectar campeón: partido de la Final con resultado
+            if (m.round === "Final") {
+                champion = m.score.ft[0] > m.score.ft[1] ? homeEs : awayEs;
+            }
         });
-        liveScores = map;
-        const ts = new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+
+        liveScores   = map;
+        autoChampion = champion;
+
+        const ts = new Date().toLocaleTimeString("es-MX", { hour:"2-digit", minute:"2-digit" });
         showStatus(`✅ Actualizado ${ts} · ${Object.keys(map).length} resultados`);
     } catch(e) {
         showStatus("⚠️ Sin API — datos locales");
     }
 }
+
 function showStatus(msg) {
     const el = document.getElementById("apiStatus");
     if (el) el.textContent = msg;
@@ -80,7 +94,7 @@ function computeAutoEliminated() {
     });
     const auto = [];
     Object.entries(stats).forEach(([t,s]) => {
-        if (s.played>=3 && s.lost===3)               auto.push(t);
+        if (s.played>=3 && s.lost===3)              auto.push(t);
         if (s.played>=2 && s.lost>=2 && s.pts===0)  auto.push(t);
     });
     return [...new Set(auto)];
@@ -89,24 +103,17 @@ function getAllEliminated() {
     return [...new Set([...computeAutoEliminated(), ...manualEliminated])];
 }
 
-// ── Firebase ───────────────────────────────────────────────────────────
+// ── Firebase (solo guarda eliminados manuales, ya no el campeón) ───────
 function listenSettings() {
     onSnapshot(doc(db, "settings", "tournament"), snap => {
         if (snap.exists()) {
-            const d = snap.data();
-            manualEliminated = d.manualEliminated || [];
-            const sel = document.getElementById("championSelect");
-            if (sel && d.champion) sel.value = d.champion;
+            manualEliminated = snap.data().manualEliminated || [];
         }
         renderAll();
     });
 }
 async function saveSettings() {
-    const sel = document.getElementById("championSelect");
-    await setDoc(doc(db,"settings","tournament"), {
-        champion: sel?.value || "",
-        manualEliminated,
-    });
+    await setDoc(doc(db,"settings","tournament"), { manualEliminated });
 }
 window.toggleEliminated = function(team) {
     const idx = manualEliminated.indexOf(team);
@@ -118,7 +125,7 @@ window.toggleEliminated = function(team) {
 function renderAll() {
     const elim = getAllEliminated();
     renderSummary(elim);
-    renderTodayMatches(elim);   // ← NUEVO: partidos del día en Resumen
+    renderTodayMatches(elim);
     renderParticipants(elim);
     renderRanking(elim);
     renderMatches(elim);
@@ -130,13 +137,41 @@ function renderSummary(elim) {
     const allTeams = [...new Set(participantsData.flatMap(p=>p.teams))];
     document.getElementById("totalPlayers").textContent    = participantsData.length;
     document.getElementById("aliveTeamsCount").textContent = allTeams.length - elim.length;
-    const sel   = document.getElementById("championSelect");
-    const champ = sel?.value || "";
-    const found = champ && participantsData.find(p=>p.teams.includes(champ));
-    document.getElementById("winner").textContent = found ? found.name : "-";
+
+    const champBox = document.getElementById("championBox");
+    if (!champBox) return;
+
+    if (autoChampion) {
+        // ✅ Hay campeón oficial — mostrarlo con festejo
+        const winner = participantsData.find(p => p.teams.includes(autoChampion));
+        champBox.innerHTML = `
+            <div class="champion-reveal">
+                <div class="champ-trophy">🏆</div>
+                <div class="champ-team">${autoChampion}</div>
+                <div class="champ-label">Campeón Mundial 2026</div>
+                ${winner ? `<div class="champ-winner">🎉 Ganador: <strong>${winner.name}</strong></div>` : ""}
+            </div>`;
+    } else {
+        // ⏳ Torneo en curso — mostrar equipos aún con chances
+        const alive = participantsData.map(p => ({
+            name:  p.name,
+            teams: p.teams.filter(t => !elim.includes(t)),
+        })).filter(p => p.teams.length > 0);
+
+        const topTeams = [...new Set(alive.flatMap(p => p.teams))].slice(0, 6);
+
+        champBox.innerHTML = `
+            <div class="champ-pending">
+                <span class="champ-pending-label">🏆 Campeón</span>
+                <span class="champ-pending-value">Por definirse</span>
+                <div class="champ-candidates">
+                    ${topTeams.map(t => `<span class="candidate">${t}</span>`).join("")}
+                </div>
+            </div>`;
+    }
 }
 
-// ── 🆕 Partidos hoy / en vivo en la pestaña Resumen ───────────────────
+// ── Partidos de hoy / en vivo ──────────────────────────────────────────
 function renderTodayMatches(elim) {
     const container = document.getElementById("todayMatches");
     if (!container) return;
@@ -149,19 +184,16 @@ function renderTodayMatches(elim) {
     const today = [];
 
     matches.forEach(m => {
-        const kickoff  = new Date(m.isoDate);
-        const dateStr  = m.isoDate.slice(0,10);
-        const diffMin  = (now - kickoff) / 60000;
-        const played   = m.homeScore !== null && m.awayScore !== null;
+        const kickoff = new Date(m.isoDate);
+        const dateStr = m.isoDate.slice(0,10);
+        const diffMin = (now - kickoff) / 60000;
+        const played  = m.homeScore !== null && m.awayScore !== null;
 
-        if (!played && diffMin >= -5 && diffMin <= 110) {
-            live.push({ ...m, kickoff });
-        } else if (dateStr === todayStr) {
-            today.push({ ...m, kickoff, played });
-        }
+        if (!played && diffMin >= -5 && diffMin <= 110) live.push({ ...m, kickoff });
+        else if (dateStr === todayStr)                   today.push({ ...m, kickoff, played });
     });
 
-    const toShow   = live.length > 0 ? live : today;
+    const toShow        = live.length > 0 ? live : today;
     const isLiveSection = live.length > 0;
 
     if (toShow.length === 0) {
@@ -174,29 +206,28 @@ function renderTodayMatches(elim) {
         const awayElim  = elim.includes(m.away);
         const homeOwner = participantsData.find(p=>p.teams.includes(m.home))?.name||"";
         const awayOwner = participantsData.find(p=>p.teams.includes(m.away))?.name||"";
-        const isLive    = isLiveSection;
         const played    = m.homeScore !== null && m.awayScore !== null;
 
         let score;
         if (played) {
             const hw = m.homeScore > m.awayScore, aw = m.awayScore > m.homeScore;
             score = `<div class="td-score-wrap">
-                        <div class="td-nums">
-                            <span class="td-sc ${hw?"win":""}">${m.homeScore}</span>
-                            <span class="td-sep">-</span>
-                            <span class="td-sc ${aw?"win":""}">${m.awayScore}</span>
-                        </div>
-                        ${m.htHome!==null?`<div class="td-ht">MT ${m.htHome}-${m.htAway}</div>`:""}
-                        <div class="td-final">Final</div>
-                     </div>`;
-        } else if (isLive) {
+                <div class="td-nums">
+                    <span class="td-sc ${hw?"win":""}">${m.homeScore}</span>
+                    <span class="td-sep">-</span>
+                    <span class="td-sc ${aw?"win":""}">${m.awayScore}</span>
+                </div>
+                ${m.htHome!==null?`<div class="td-ht">MT ${m.htHome}-${m.htAway}</div>`:""}
+                <div class="td-final">Final</div>
+            </div>`;
+        } else if (isLiveSection) {
             score = `<div class="td-score-wrap"><div class="td-live">🔴 EN VIVO</div></div>`;
         } else {
             const hora = m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
             score = `<div class="td-score-wrap"><div class="td-time">${hora}</div></div>`;
         }
 
-        return `<div class="today-card ${isLive&&!played?"today-live":""}">
+        return `<div class="today-card ${isLiveSection&&!played?"today-live":""}">
             <div class="td-team ${homeElim?"elim-team":""}">
                 <span class="td-name">${m.home}</span>
                 ${homeOwner?`<span class="td-owner">👤 ${homeOwner}</span>`:""}
@@ -331,17 +362,6 @@ function renderChart(elim) {
     });
 }
 
-// ── Campeón ────────────────────────────────────────────────────────────
-function initChampionSelect() {
-    const sel=document.getElementById("championSelect");
-    if (!sel) return;
-    [...new Set(participantsData.flatMap(p=>p.teams))].sort().forEach(t=>{
-        const opt=document.createElement("option");
-        opt.value=opt.textContent=t; sel.appendChild(opt);
-    });
-    sel.addEventListener("change",saveSettings);
-}
-
 // ── Tabs ───────────────────────────────────────────────────────────────
 function initTabs() {
     document.querySelectorAll(".tab-btn").forEach(btn=>{
@@ -357,7 +377,6 @@ function initTabs() {
 
 // ── Init ───────────────────────────────────────────────────────────────
 initTabs();
-initChampionSelect();
 renderAll();
 fetchLiveScores().then(()=>renderAll());
 listenSettings();
