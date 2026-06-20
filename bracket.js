@@ -1,26 +1,10 @@
-// ── Pestaña Eliminatoria / Bracket ─────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+//  BRACKET VISUAL — Mundial 2026
+//  Ronda de 32 → Octavos → Cuartos → Semis → Final
+// ══════════════════════════════════════════════════════════
 
-const BRACKET_API = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
+const BK_API = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
 
-// Traducción de claves de API → nombres legibles
-const ROUND_LABELS = {
-    "Round of 32":         "Ronda de 32",
-    "Round of 16":         "Octavos de Final",
-    "Quarter-final":       "Cuartos de Final",
-    "Semi-final":          "Semifinales",
-    "Match for third place":"Tercer Lugar",
-    "Final":               "🏆 Gran Final",
-};
-
-const ROUND_ORDER = [
-    "Round of 32",
-    "Round of 16",
-    "Quarter-final",
-    "Semi-final",
-    "Final",
-];
-
-// Mapa inglés → español (mismo que app.js)
 const BK_NAME_MAP = {
     "Algeria":"Argelia","Argentina":"Argentina","Australia":"Australia",
     "Austria":"Austria","Belgium":"Bélgica","Bosnia & Herzegovina":"Bosnia y Herzegovina",
@@ -40,165 +24,197 @@ const BK_NAME_MAP = {
 };
 const bkes = n => BK_NAME_MAP[n] || n;
 
-// Formatear claves genéricas tipo "1A", "2B", "W73"
+function isReal(name) {
+    if (!name) return false;
+    return !((/^[WL]\d+$/.test(name)) || (/^\d[A-L]$/.test(name)) || name.includes("/"));
+}
+
 function fmtTeam(name) {
     if (!name) return "Por definir";
-    if (/^W\d+$/.test(name))   return `Ganador partido ${name.slice(1)}`;
-    if (/^L\d+$/.test(name))   return `Perdedor partido ${name.slice(1)}`;
-    if (/^\d[A-L]$/.test(name)) {
-        const pos = name[0] === "1" ? "1°" : name[0] === "2" ? "2°" : "3°";
-        return `${pos} Grupo ${name[1]}`;
-    }
-    if (name.includes("/")) return `Mejor 3° (${name})`;
+    if (/^W\d+$/.test(name))    return `W${name.slice(1)}`;
+    if (/^L\d+$/.test(name))    return `L${name.slice(1)}`;
+    if (/^\d[A-L]$/.test(name)) return `${name[0]}° Grupo ${name[1]}`;
+    if (name.includes("/"))      return `Mejor 3°`;
     return bkes(name);
 }
 
-// Saber si un nombre es "real" (equipo conocido) o genérico
-function isRealTeam(name) {
-    return !(/^[WL]\d+$/.test(name) || /^\d[A-L]$/.test(name) || name.includes("/"));
+function teamLabel(name) {
+    return isReal(name) ? bkes(name) : fmtTeam(name);
 }
 
-// ── Render del bracket ──────────────────────────────────────────────────
-window.renderBracket = async function() {
-    const container = document.getElementById("bracketContainer");
-    if (!container) return;
-    container.innerHTML = `<div class="bk-loading">⏳ Cargando bracket...</div>`;
+// Detectar equipos de la familia (requiere participantsData global)
+function isFamilyTeam(nameEs) {
+    if (!window.participantsData) return false;
+    return participantsData.some(p => p.teams.includes(nameEs));
+}
+function ownerOf(nameEs) {
+    if (!window.participantsData) return "";
+    return participantsData.find(p => p.teams.includes(nameEs))?.name || "";
+}
 
-    let bracketData = {};
+// ── Render principal ──────────────────────────────────────
+window.renderBracket = async function () {
+    const wrap = document.getElementById("bracketContainer");
+    if (!wrap) return;
+    wrap.innerHTML = `<div class="bk-loading">⏳ Cargando bracket…</div>`;
+
+    let rounds = {};
     try {
-        const res  = await fetch(BRACKET_API + "?t=" + Date.now());
+        const res  = await fetch(BK_API + "?t=" + Date.now());
         const data = await res.json();
 
-        // Agrupar por ronda
-        ROUND_ORDER.forEach(round => { bracketData[round] = []; });
+        const ROUNDS = ["Round of 32","Round of 16","Quarter-final","Semi-final","Final","Match for third place"];
+        ROUNDS.forEach(r => rounds[r] = []);
 
         data.matches.forEach(m => {
-            if (!ROUND_ORDER.includes(m.round)) return;
-            const score   = m.score?.ft || null;
-            const hasPens = m.score?.p  || null;
-            bracketData[m.round].push({
+            if (!ROUNDS.includes(m.round)) return;
+            const sc = m.score?.ft || null;
+            const pk = m.score?.p  || null;
+            rounds[m.round].push({
                 date:   m.date,
                 home:   m.team1,
                 away:   m.team2,
-                hScore: score ? score[0] : null,
-                aScore: score ? score[1] : null,
-                hPens:  hasPens ? hasPens[0] : null,
-                aPens:  hasPens ? hasPens[1] : null,
-                ground: m.ground || "",
+                hs:     sc ? sc[0] : null,
+                as:     sc ? sc[1] : null,
+                hp:     pk ? pk[0] : null,
+                ap:     pk ? pk[1] : null,
             });
         });
     } catch(e) {
-        container.innerHTML = `<div class="bk-loading">⚠️ No se pudo cargar el bracket</div>`;
+        wrap.innerHTML = `<div class="bk-loading">⚠️ No se pudo cargar el bracket</div>`;
         return;
     }
 
-    // Detectar equipos de la familia
-    const familyTeams = new Set(participantsData.flatMap(p => p.teams));
-    const ownerOf = team => participantsData.find(p => p.teams.includes(team))?.name || "";
+    // ── Construir HTML ─────────────────────────────────────
+    // Estructura: [R32 top-half] [R16] [QF] [SF] [Final] [SF'] [QF'] [R16'] [R32 bottom-half]
+    // Mostramos dos mitades (arriba/abajo) por columna para el efecto clásico de bracket
 
-    // Construir HTML por ronda
-    let html = `<div class="bracket-scroll">`;
+    const r32  = rounds["Round of 32"];          // 16 partidos [0..15]
+    const r16  = rounds["Round of 16"];           // 8  partidos [0..7]
+    const qf   = rounds["Quarter-final"];         // 4  partidos [0..3]
+    const sf   = rounds["Semi-final"];            // 2  partidos [0..1]
+    const fin  = rounds["Final"];                 // 1  partido  [0]
+    const tp   = rounds["Match for third place"]; // 1  partido
 
-    ROUND_ORDER.forEach(round => {
-        const matches = bracketData[round] || [];
-        if (matches.length === 0) return;
+    // Mitad superior: R32[0-7], R16[0-3], QF[0-1], SF[0]
+    // Mitad inferior: R32[8-15], R16[4-7], QF[2-3], SF[1]
 
-        const label    = ROUND_LABELS[round] || round;
-        const isFinal  = round === "Final";
+    function matchCard(m, size = "md") {
+        if (!m) return `<div class="bk-card bk-card--${size} bk-card--empty"><div class="bk-slot">—</div><div class="bk-slot">—</div></div>`;
 
-        html += `<div class="bk-round ${isFinal ? "bk-final-round" : ""}">`;
-        html += `<div class="bk-round-label">${label}</div>`;
-        html += `<div class="bk-matches">`;
+        const played = m.hs !== null;
+        const homeEs = teamLabel(m.home);
+        const awayEs = teamLabel(m.away);
+        const homeFam = isReal(m.home) && isFamilyTeam(bkes(m.home));
+        const awayFam = isReal(m.away) && isFamilyTeam(bkes(m.away));
 
-        matches.forEach((m, idx) => {
-            const played  = m.hScore !== null;
-            const homeEs  = bkes(m.home);
-            const awayEs  = bkes(m.away);
-            const homeReal = isRealTeam(m.home);
-            const awayReal = isRealTeam(m.away);
+        let hw = false, aw = false;
+        if (played) {
+            hw = m.hs > m.as || (m.hs === m.as && m.hp > m.ap);
+            aw = !hw;
+        }
 
-            const hWin = played && (m.hScore > m.aScore || (m.hScore === m.aScore && m.hPens > m.aPens));
-            const aWin = played && !hWin;
-
-            const homeFam = homeReal && familyTeams.has(homeEs);
-            const awayFam = awayReal && familyTeams.has(awayEs);
-            const homeOwner = homeFam ? ownerOf(homeEs) : "";
-            const awayOwner = awayFam ? ownerOf(awayEs) : "";
-
-            const dateStr = m.date
-                ? new Date(m.date + "T12:00:00").toLocaleDateString("es-MX", { day:"numeric", month:"short" })
-                : "";
-
-            let scoreHtml = "";
-            if (played) {
-                scoreHtml = `
-                    <div class="bk-score">
-                        <span class="bk-sc ${hWin?"bk-win":""}">${m.hScore}${m.hPens!==null?` (${m.hPens}p)`:""}</span>
-                        <span class="bk-dash">-</span>
-                        <span class="bk-sc ${aWin?"bk-win":""}">${m.aScore}${m.aPens!==null?` (${m.aPens}p)`:""}</span>
-                    </div>`;
-            } else {
-                scoreHtml = `<div class="bk-date">${dateStr}</div>`;
-            }
-
-            html += `
-            <div class="bk-match ${played?"bk-played":""} ${isFinal&&played?"bk-final-played":""}">
-                <div class="bk-team ${hWin?"bk-winner":""} ${homeFam?"bk-family":""} ${!homeReal?"bk-tbd":""}">
-                    <span class="bk-tname">${homeReal ? homeEs : fmtTeam(m.home)}</span>
-                    ${homeOwner ? `<span class="bk-owner">👤 ${homeOwner}</span>` : ""}
-                </div>
-                ${scoreHtml}
-                <div class="bk-team ${aWin?"bk-winner":""} ${awayFam?"bk-family":""} ${!awayReal?"bk-tbd":""}">
-                    <span class="bk-tname">${awayReal ? awayEs : fmtTeam(m.away)}</span>
-                    ${awayOwner ? `<span class="bk-owner">👤 ${awayOwner}</span>` : ""}
-                </div>
-                ${isFinal && played && hWin ? `<div class="bk-champion-badge">🏆 Campeón: ${homeEs}</div>` : ""}
-                ${isFinal && played && aWin ? `<div class="bk-champion-badge">🏆 Campeón: ${awayEs}</div>` : ""}
-            </div>`;
-        });
-
-        html += `</div></div>`; // bk-matches, bk-round
-    });
-
-    // Tercer lugar aparte
-    const tercero = bracketData["Match for third place"] || [];
-    if (tercero.length > 0) {
-        const m = tercero[0];
-        const played   = m.hScore !== null;
-        const homeEs   = bkes(m.home);
-        const awayEs   = bkes(m.away);
-        const homeReal = isRealTeam(m.home);
-        const awayReal = isRealTeam(m.away);
-        const hWin = played && m.hScore > m.aScore;
-        const aWin = played && !hWin;
         const dateStr = m.date
-            ? new Date(m.date + "T12:00:00").toLocaleDateString("es-MX", { day:"numeric", month:"short" })
+            ? new Date(m.date + "T12:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"})
             : "";
 
-        html += `<div class="bk-third">
-            <div class="bk-round-label">🥉 Tercer Lugar</div>
-            <div class="bk-match bk-played-third ${played?"bk-played":""}">
-                <div class="bk-team ${hWin?"bk-winner":""} ${!homeReal?"bk-tbd":""}">
-                    <span class="bk-tname">${homeReal ? homeEs : fmtTeam(m.home)}</span>
-                </div>
-                ${played
-                    ? `<div class="bk-score">
-                        <span class="bk-sc ${hWin?"bk-win":""}">${m.hScore}</span>
-                        <span class="bk-dash">-</span>
-                        <span class="bk-sc ${aWin?"bk-win":""}">${m.aScore}</span>
-                       </div>`
-                    : `<div class="bk-date">${dateStr}</div>`}
-                <div class="bk-team ${aWin?"bk-winner":""} ${!awayReal?"bk-tbd":""}">
-                    <span class="bk-tname">${awayReal ? awayEs : fmtTeam(m.away)}</span>
-                </div>
+        const scoreH = played ? `<span class="bk-sc ${hw?"bk-w":""}">${m.hs}${m.hp!=null?` (${m.hp}p)`:""}</span>` : "";
+        const scoreA = played ? `<span class="bk-sc ${aw?"bk-w":""}">${m.as}${m.ap!=null?` (${m.ap}p)`:""}</span>` : `<span class="bk-date-badge">${dateStr}</span>`;
+
+        const owH = homeFam ? ownerOf(bkes(m.home)) : "";
+        const owA = awayFam ? ownerOf(bkes(m.away)) : "";
+
+        return `<div class="bk-card bk-card--${size}">
+            <div class="bk-slot ${hw?"bk-winner":""} ${homeFam?"bk-fam":""} ${!isReal(m.home)?"bk-tbd":""}">
+                <span class="bk-name">${homeEs}</span>
+                ${owH ? `<span class="bk-ow">${owH}</span>` : ""}
+                ${scoreH}
+            </div>
+            <div class="bk-slot ${aw?"bk-winner":""} ${awayFam?"bk-fam":""} ${!isReal(m.away)?"bk-tbd":""}">
+                <span class="bk-name">${awayEs}</span>
+                ${owA ? `<span class="bk-ow">${owA}</span>` : ""}
+                ${scoreA}
             </div>
         </div>`;
     }
 
-    html += `</div>`; // bracket-scroll
+    // columna de ronda
+    function col(label, cards, cls = "") {
+        return `<div class="bk-col ${cls}">
+            <div class="bk-col-label">${label}</div>
+            <div class="bk-col-matches">${cards.join("")}</div>
+        </div>`;
+    }
 
-    const ts = new Date().toLocaleTimeString("es-MX", { hour:"2-digit", minute:"2-digit" });
-    html += `<p class="bk-updated">Actualizado ${ts} · Se refresca cada 5 min</p>`;
+    // Tarjeta de campeón
+    const finalMatch = fin[0];
+    let champHtml = "";
+    if (finalMatch && finalMatch.hs !== null) {
+        const hw = finalMatch.hs > finalMatch.as;
+        const champName = hw ? bkes(finalMatch.home) : bkes(finalMatch.away);
+        const champOwner = isFamilyTeam(champName) ? ownerOf(champName) : "";
+        champHtml = `<div class="bk-champion">
+            <div class="bk-champ-trophy">🏆</div>
+            <div class="bk-champ-name">${champName}</div>
+            <div class="bk-champ-label">Campeón Mundial 2026</div>
+            ${champOwner ? `<div class="bk-champ-owner">🎉 ${champOwner}</div>` : ""}
+        </div>`;
+    } else {
+        champHtml = `<div class="bk-champion bk-champion--pending">
+            <div class="bk-champ-trophy">🏆</div>
+            <div class="bk-champ-label">Por definirse</div>
+            <div class="bk-final-date">19 Jul · Nueva York</div>
+        </div>`;
+    }
 
-    container.innerHTML = html;
+    // 3er lugar
+    const tpMatch = tp[0];
+    const tpHtml = tpMatch ? `
+        <div class="bk-third-place">
+            <div class="bk-tp-label">🥉 Tercer Lugar · ${tpMatch.date ? new Date(tpMatch.date+"T12:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"long"}) : "18 Jul"}</div>
+            ${matchCard(tpMatch, "sm")}
+        </div>` : "";
+
+    // Construir layout completo
+    wrap.innerHTML = `
+    <div class="bk-scroll-wrap">
+      <div class="bk-bracket">
+
+        <!-- MITAD SUPERIOR -->
+        <div class="bk-half bk-half--top">
+          ${col("Ronda de 32", r32.slice(0,8).map(m=>matchCard(m)))}
+          <div class="bk-connectors bk-conn-32-16 bk-conn-top"></div>
+          ${col("Octavos", r16.slice(0,4).map(m=>matchCard(m)))}
+          <div class="bk-connectors bk-conn-16-qf bk-conn-top"></div>
+          ${col("Cuartos", qf.slice(0,2).map(m=>matchCard(m)))}
+          <div class="bk-connectors bk-conn-qf-sf bk-conn-top"></div>
+          ${col("Semifinal", sf.slice(0,1).map(m=>matchCard(m,"lg")))}
+          <div class="bk-connectors bk-conn-sf-f bk-conn-top"></div>
+        </div>
+
+        <!-- CENTRO: FINAL + CAMPEÓN -->
+        <div class="bk-center">
+          <div class="bk-final-label">🏆 GRAN FINAL</div>
+          <div class="bk-final-date-sub">19 Jul · MetLife Stadium</div>
+          ${matchCard(finalMatch || null, "xl")}
+          ${champHtml}
+        </div>
+
+        <!-- MITAD INFERIOR -->
+        <div class="bk-half bk-half--bot">
+          <div class="bk-connectors bk-conn-sf-f bk-conn-bot"></div>
+          ${col("Semifinal", sf.slice(1,2).map(m=>matchCard(m,"lg")))}
+          <div class="bk-connectors bk-conn-qf-sf bk-conn-bot"></div>
+          ${col("Cuartos", qf.slice(2,4).map(m=>matchCard(m)))}
+          <div class="bk-connectors bk-conn-16-qf bk-conn-bot"></div>
+          ${col("Octavos", r16.slice(4,8).map(m=>matchCard(m)))}
+          <div class="bk-connectors bk-conn-32-16 bk-conn-bot"></div>
+          ${col("Ronda de 32", r32.slice(8,16).map(m=>matchCard(m)))}
+        </div>
+
+      </div>
+      ${tpHtml}
+    </div>
+    <p class="bk-updated">⟳ Actualizado ${new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})} · Los equipos aparecen conforme avanza el torneo · <span style="color:#f59e0b">■</span> equipo de la familia</p>
+    `;
 };
