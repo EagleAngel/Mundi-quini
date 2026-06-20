@@ -1,4 +1,4 @@
-import { db, doc, setDoc, onSnapshot } from "./firebase.js";
+   import { db, doc, setDoc, onSnapshot } from "./firebase.js";
 
 const API_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
 
@@ -370,7 +370,15 @@ function initTabs() {
             document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
             document.getElementById(btn.dataset.tab).classList.add("active");
             btn.classList.add("active");
-            if (btn.dataset.tab==="estadisticas") renderChart(getAllEliminated());
+            if (btn.dataset.tab==="estadisticas")  renderChart(getAllEliminated());
+            if (btn.dataset.tab==="eliminatoria" && window.renderBracket) {
+                window.renderBracket();
+                // refrescar cada 5 min mientras está abierto
+                clearInterval(window._bracketTimer);
+                window._bracketTimer = setInterval(window.renderBracket, 5*60*1000);
+            } else {
+                clearInterval(window._bracketTimer);
+            }
         });
     });
 }
