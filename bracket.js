@@ -1,4 +1,4 @@
-// ══════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════
 //  BRACKET VISUAL — Mundial 2026
 //  Ronda de 32 → Octavos → Cuartos → Semis → Final
 // ══════════════════════════════════════════════════════════
@@ -105,6 +105,8 @@ window.renderBracket = async function () {
         const played = m.hs !== null;
         const homeEs = teamLabel(m.home);
         const awayEs = teamLabel(m.away);
+        const homeFlag = isReal(m.home) && window.getFlag ? window.getFlag(bkes(m.home)) : "";
+        const awayFlag = isReal(m.away) && window.getFlag ? window.getFlag(bkes(m.away)) : "";
         const homeFam = isReal(m.home) && isFamilyTeam(bkes(m.home));
         const awayFam = isReal(m.away) && isFamilyTeam(bkes(m.away));
 
@@ -126,12 +128,12 @@ window.renderBracket = async function () {
 
         return `<div class="bk-card bk-card--${size}">
             <div class="bk-slot ${hw?"bk-winner":""} ${homeFam?"bk-fam":""} ${!isReal(m.home)?"bk-tbd":""}">
-                <span class="bk-name">${homeEs}</span>
+                <span class="bk-name">${homeFlag} ${homeEs}</span>
                 ${owH ? `<span class="bk-ow">${owH}</span>` : ""}
                 ${scoreH}
             </div>
             <div class="bk-slot ${aw?"bk-winner":""} ${awayFam?"bk-fam":""} ${!isReal(m.away)?"bk-tbd":""}">
-                <span class="bk-name">${awayEs}</span>
+                <span class="bk-name">${awayFlag} ${awayEs}</span>
                 ${owA ? `<span class="bk-ow">${owA}</span>` : ""}
                 ${scoreA}
             </div>
@@ -155,7 +157,7 @@ window.renderBracket = async function () {
         const champOwner = isFamilyTeam(champName) ? ownerOf(champName) : "";
         champHtml = `<div class="bk-champion">
             <div class="bk-champ-trophy">🏆</div>
-            <div class="bk-champ-name">${champName}</div>
+            <div class="bk-champ-name">${window.getFlag?window.getFlag(champName):""} ${champName}</div>
             <div class="bk-champ-label">Campeón Mundial 2026</div>
             ${champOwner ? `<div class="bk-champ-owner">🎉 ${champOwner}</div>` : ""}
         </div>`;
