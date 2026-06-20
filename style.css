@@ -336,3 +336,221 @@ h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #94a3b8; }
     .bracket-scroll { align-items: stretch; }
     .bk-round       { min-width: 190px; }
 }
+
+/* ════════════════════════════════════════════════════════
+   BRACKET VISUAL
+════════════════════════════════════════════════════════ */
+.bk-loading, .bk-updated {
+    text-align: center; color: #64748b; font-size: .75rem; padding: 16px 0;
+}
+
+/* Scroll horizontal general */
+.bk-scroll-wrap {
+    overflow-x: auto;
+    padding-bottom: 16px;
+}
+.bk-scroll-wrap::-webkit-scrollbar { height: 5px; }
+.bk-scroll-wrap::-webkit-scrollbar-thumb { background:#334155; border-radius:4px; }
+
+/* ── Layout del bracket ── */
+.bk-bracket {
+    display: flex;
+    align-items: stretch;
+    min-width: 900px;
+    gap: 0;
+    position: relative;
+}
+
+/* Mitades superior e inferior */
+.bk-half {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 0;
+}
+.bk-half--top { flex-direction: row; }
+.bk-half--bot { flex-direction: row-reverse; }
+
+/* Columna de ronda */
+.bk-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 142px;
+    flex: 0 0 auto;
+}
+.bk-col-label {
+    font-size: .62rem;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #475569;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    text-align: center;
+}
+.bk-col-matches {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+/* ── Tarjeta de partido ── */
+.bk-card {
+    background: #1e293b;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #1e293b;
+    width: 100%;
+    transition: border-color .15s;
+}
+.bk-card:hover { border-color: #334155; }
+.bk-card--empty { opacity: .3; }
+
+/* Tamaños */
+.bk-card--sm  { font-size: .78rem; }
+.bk-card--md  { font-size: .78rem; }
+.bk-card--lg  { font-size: .82rem; }
+.bk-card--xl  { font-size: .88rem; min-width: 160px; }
+
+/* Fila de equipo dentro de la tarjeta */
+.bk-slot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    gap: 4px;
+    border-bottom: 1px solid #0f172a;
+    min-height: 30px;
+}
+.bk-slot:last-child { border-bottom: none; }
+
+.bk-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: inherit;
+    color: #cbd5e1;
+}
+.bk-ow {
+    font-size: .6rem;
+    color: #64748b;
+    white-space: nowrap;
+    margin: 0 3px;
+}
+.bk-sc {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #64748b;
+    min-width: 16px;
+    text-align: right;
+    flex-shrink: 0;
+}
+.bk-date-badge {
+    font-size: .6rem;
+    color: #475569;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Estados */
+.bk-winner .bk-name { color: #22c55e; font-weight: 700; }
+.bk-winner .bk-sc   { color: #22c55e; }
+.bk-tbd    .bk-name { color: #475569; font-style: italic; font-size: .72rem; }
+.bk-fam    { background: #1c2540; }
+.bk-fam .bk-name { color: #f59e0b; }
+.bk-w { color: #22c55e !important; }
+
+/* ── Conectores SVG entre columnas ── */
+.bk-connectors {
+    flex: 0 0 18px;
+    width: 18px;
+    align-self: stretch;
+    position: relative;
+}
+/* Los conectores son decorativos vía CSS border */
+.bk-connectors::before {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 50%;
+    border-left: 1px solid #334155;
+}
+
+/* ── Centro: Final ── */
+.bk-center {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    gap: 8px;
+    min-width: 170px;
+    z-index: 1;
+}
+.bk-final-label {
+    font-size: .65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #f59e0b;
+    text-align: center;
+}
+.bk-final-date-sub {
+    font-size: .6rem;
+    color: #64748b;
+    margin-top: -4px;
+    text-align: center;
+}
+
+/* Tarjeta de la final más vistosa */
+.bk-center .bk-card {
+    border-color: #f59e0b44;
+    background: linear-gradient(160deg,#1e293b,#1a1e0f);
+    box-shadow: 0 0 20px #f59e0b22;
+}
+.bk-center .bk-card:hover { border-color: #f59e0b88; }
+
+/* ── Campeón ── */
+.bk-champion {
+    background: linear-gradient(160deg,#1e293b,#0f2a1a);
+    border: 1px solid #22c55e44;
+    border-radius: 12px;
+    padding: 14px 18px;
+    text-align: center;
+    width: 100%;
+    animation: bkChampIn .5s ease;
+}
+.bk-champion--pending {
+    background: #1e293b;
+    border-color: #33415500;
+}
+@keyframes bkChampIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+.bk-champ-trophy { font-size: 2rem; }
+.bk-champ-name   { font-size: 1.1rem; font-weight: 800; color: #22c55e; margin-top: 2px; }
+.bk-champ-label  { font-size: .7rem; color: #64748b; margin-top: 2px; }
+.bk-champ-owner  { font-size: .82rem; color: #fbbf24; margin-top: 4px; font-weight: 600; }
+.bk-final-date   { font-size: .7rem; color: #475569; margin-top: 4px; }
+
+/* ── Tercer lugar ── */
+.bk-third-place {
+    margin-top: 18px;
+    max-width: 320px;
+}
+.bk-tp-label {
+    font-size: .72rem;
+    color: #64748b;
+    margin-bottom: 6px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+/* ── Responsive: en pantallas pequeñas solo scroll ── */
+@media (max-width: 900px) {
+    .bk-bracket { min-width: 860px; }
+    .bk-col     { min-width: 126px; }
+    .bk-center  { min-width: 154px; }
+}
