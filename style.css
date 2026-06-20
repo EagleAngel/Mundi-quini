@@ -204,3 +204,135 @@ h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #94a3b8; }
 .td-time  { font-size: .82rem; color: #64748b; }
 
 .no-matches { color: #475569; font-size: .85rem; margin: 12px 0; }
+
+/* ══════════════════════════════════════════
+   BRACKET ELIMINATORIA
+══════════════════════════════════════════ */
+.bk-loading {
+    text-align: center; color: #64748b;
+    padding: 40px 0; font-size: .9rem;
+}
+.bk-updated {
+    text-align: center; font-size: .7rem;
+    color: #475569; margin-top: 16px;
+}
+
+/* Scroll horizontal en móvil */
+.bracket-scroll {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    align-items: flex-start;
+}
+.bracket-scroll::-webkit-scrollbar { height: 4px; }
+.bracket-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+/* Ronda */
+.bk-round {
+    flex: 0 0 auto;
+    min-width: 180px;
+    max-width: 210px;
+}
+.bk-final-round { min-width: 200px; }
+.bk-third       { min-width: 200px; margin-top: 16px; }
+
+.bk-round-label {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #64748b;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #1e293b;
+    white-space: nowrap;
+}
+
+.bk-matches { display: flex; flex-direction: column; gap: 8px; }
+
+/* Tarjeta de partido */
+.bk-match {
+    background: #1e293b;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #1e293b;
+    transition: border-color .2s;
+}
+.bk-match:hover       { border-color: #334155; }
+.bk-played            { border-color: #0f2a1a; }
+.bk-final-played      { border-color: #22c55e55; background: linear-gradient(160deg,#1e293b,#0f2a1a); }
+
+/* Equipo dentro de la tarjeta */
+.bk-team {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    gap: 6px;
+    border-bottom: 1px solid #0f172a;
+}
+.bk-team:last-of-type { border-bottom: none; }
+
+.bk-tname {
+    font-size: .82rem;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.bk-owner {
+    font-size: .62rem;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+/* Estados del equipo */
+.bk-winner .bk-tname { color: #22c55e; font-weight: 700; }
+.bk-tbd    .bk-tname { color: #475569; font-style: italic; font-size: .75rem; }
+.bk-family            { background: #1a2535; }
+.bk-family .bk-tname { color: #f59e0b; }
+
+/* Marcador */
+.bk-score {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: #0f172a;
+    border-top: 1px solid #0f172a;
+}
+.bk-sc      { font-size: 1rem; font-weight: 700; color: #64748b; min-width: 18px; text-align: center; }
+.bk-sc.bk-win { color: #22c55e; }
+.bk-dash    { color: #334155; font-size: .85rem; }
+
+/* Fecha cuando no hay resultado */
+.bk-date {
+    text-align: center;
+    font-size: .7rem;
+    color: #475569;
+    padding: 4px 0;
+    background: #0f172a;
+}
+
+/* Badge campeón */
+.bk-champion-badge {
+    text-align: center;
+    font-size: .82rem;
+    color: #fbbf24;
+    font-weight: 700;
+    padding: 6px;
+    background: #1a1a00;
+    animation: champIn .6s ease;
+}
+
+/* Tercer lugar */
+.bk-played-third { max-width: 220px; }
+
+@keyframes champIn { from{opacity:0;transform:scale(.9)} to{opacity:1;transform:scale(1)} }
+
+/* Responsive: en pantallas grandes mostrar en grid */
+@media (min-width: 700px) {
+    .bracket-scroll { align-items: stretch; }
+    .bk-round       { min-width: 190px; }
+}
