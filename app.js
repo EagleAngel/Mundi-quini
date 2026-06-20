@@ -1,4 +1,4 @@
-   import { db, doc, setDoc, onSnapshot } from "./firebase.js";
+    import { db, doc, setDoc, onSnapshot } from "./firebase.js";
 
 const API_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
 
@@ -147,7 +147,7 @@ function renderSummary(elim) {
         champBox.innerHTML = `
             <div class="champion-reveal">
                 <div class="champ-trophy">🏆</div>
-                <div class="champ-team">${autoChampion}</div>
+                <div class="champ-team">${window.getFlag?window.getFlag(autoChampion):""} ${autoChampion}</div>
                 <div class="champ-label">Campeón Mundial 2026</div>
                 ${winner ? `<div class="champ-winner">🎉 Ganador: <strong>${winner.name}</strong></div>` : ""}
             </div>`;
@@ -229,12 +229,12 @@ function renderTodayMatches(elim) {
 
         return `<div class="today-card ${isLiveSection&&!played?"today-live":""}">
             <div class="td-team ${homeElim?"elim-team":""}">
-                <span class="td-name">${m.home}</span>
+                <span class="td-name">${window.getFlag?window.getFlag(m.home):""} ${m.home}</span>
                 ${homeOwner?`<span class="td-owner">👤 ${homeOwner}</span>`:""}
             </div>
             ${score}
             <div class="td-team right ${awayElim?"elim-team":""}">
-                <span class="td-name">${m.away}</span>
+                <span class="td-name">${window.getFlag?window.getFlag(m.away):""} ${m.away}</span>
                 ${awayOwner?`<span class="td-owner">👤 ${awayOwner}</span>`:""}
             </div>
         </div>`;
@@ -260,9 +260,10 @@ function renderParticipants(elim) {
             const isElim = elim.includes(team);
             const isAuto = autoElim.includes(team);
             const badge  = isAuto?"🔴":manualEliminated.includes(team)?"🟡":"";
+            const flag = window.getFlag ? window.getFlag(team) : "";
             html += `<span class="team ${isElim?"eliminated":""}" onclick="toggleEliminated('${team}')"
                 title="${isAuto?"Eliminado por resultados":isElim?"Eliminado manual (clic para restaurar)":"Clic para eliminar"}">
-                ${badge} ${team}</span>`;
+                ${flag} ${badge} ${team}</span>`;
         });
         html += `</div>`;
         container.innerHTML += html;
@@ -332,13 +333,13 @@ function renderMatches(elim) {
             card.className=`match-card ${played?"played":""} ${liveFlag?"live-card":""}`;
             card.innerHTML=`
                 <div class="match-team ${homeElim?"elim-team":""}">
-                    <div class="team-name">${m.home}</div>
+                    <div class="team-name">${window.getFlag?window.getFlag(m.home):""} ${m.home}</div>
                     ${homeOwner?`<div class="owner">👤 ${homeOwner}</div>`:""}
                     <div class="goals-list">${goalStr(m.goals1||[])}</div>
                 </div>
                 ${scoreBlock}
                 <div class="match-team right ${awayElim?"elim-team":""}">
-                    <div class="team-name">${m.away}</div>
+                    <div class="team-name">${window.getFlag?window.getFlag(m.away):""} ${m.away}</div>
                     ${awayOwner?`<div class="owner">👤 ${awayOwner}</div>`:""}
                     <div class="goals-list">${goalStr(m.goals2||[])}</div>
                 </div>`;
