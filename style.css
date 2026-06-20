@@ -722,44 +722,4 @@ h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #94a3b8; }
     font-size: .58rem;
     color: #475569;
     text-align: center;
-    margin-top: -4px;
-}
-.bk-center .bk-card {
-    border-color: #f59e0b55;
-    background: linear-gradient(160deg, #1e293b, #1c1a0a);
-    box-shadow: 0 0 24px #f59e0b18;
-}
-.bk-center .bk-card:hover { border-color: #f59e0b99; }
-
-/* ── Campeón ── */
-.bk-champion {
-    background: linear-gradient(160deg,#1e293b,#0a2018);
-    border: 1px solid #22c55e44;
-    border-radius: 12px;
-    padding: 12px 14px;
-    text-align: center;
-    width: 100%;
-    animation: bkIn .5s ease;
-}
-.bk-champion--pending { background:#1e293b; border-color:#1e293b; }
-@keyframes bkIn { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
-.bk-champ-trophy  { font-size: 1.8rem; }
-.bk-champ-name    { font-size: 1rem; font-weight: 800; color: #22c55e; margin-top: 2px; }
-.bk-champ-label   { font-size: .65rem; color: #64748b; margin-top: 1px; }
-.bk-champ-owner   { font-size: .78rem; color: #fbbf24; margin-top: 4px; font-weight: 600; }
-.bk-final-date    { font-size: .65rem; color: #475569; margin-top: 4px; }
-
-/* ── Tercer lugar ── */
-.bk-third-place { margin-top: 18px; }
-.bk-tp-label {
-    font-size: .7rem; color: #64748b; margin-bottom: 6px;
-    text-align: center; text-transform: uppercase; letter-spacing: .05em;
-}
-.bk-tp-cards { max-width: 200px; margin: 0 auto; }
-
-/* ── Responsive ── */
-@media (max-width: 900px) {
-    .bk-bracket { min-width: 960px; }
-    .bk-col     { width: 132px; }
-    .bk-center  { width: 152px; }
-}
+    
