@@ -554,3 +554,212 @@ h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #94a3b8; }
     .bk-col     { min-width: 126px; }
     .bk-center  { min-width: 154px; }
 }
+
+/* ════════════════════════════════════════════════════════
+   BRACKET VISUAL — con layout espejo
+════════════════════════════════════════════════════════ */
+.bk-loading { text-align:center; color:#64748b; font-size:.8rem; padding:40px 0; }
+.bk-updated { text-align:center; color:#475569; font-size:.7rem; margin-top:14px; }
+
+.bk-scroll-wrap {
+    overflow-x: auto;
+    padding-bottom: 14px;
+    -webkit-overflow-scrolling: touch;
+}
+.bk-scroll-wrap::-webkit-scrollbar { height: 4px; }
+.bk-scroll-wrap::-webkit-scrollbar-thumb { background:#334155; border-radius:4px; }
+
+/* ── Bracket contenedor ── */
+.bk-bracket {
+    display: flex;
+    align-items: center;
+    min-width: 1060px;
+    gap: 0;
+}
+
+/* ── Columna de ronda ── */
+.bk-col {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    flex: 0 0 auto;
+    width: 148px;
+}
+.bk-col-label {
+    font-size: .6rem;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #475569;
+    text-align: center;
+    margin-bottom: 6px;
+    white-space: nowrap;
+}
+/* Columna espejo: label sigue centrado, slots alineados a la derecha */
+.bk-col--mirror .bk-col-label { text-align: center; }
+
+.bk-col-matches {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: space-around;
+    flex: 1;
+}
+
+/* ── Conectores entre columnas ── */
+.bk-conn {
+    flex: 0 0 16px;
+    width: 16px;
+    align-self: stretch;
+    border-left: 1px solid #1e3a5f;
+    margin: 24px 0;
+    position: relative;
+}
+.bk-conn::before,
+.bk-conn::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 8px;
+    border-top: 1px solid #1e3a5f;
+}
+.bk-conn::before { top: 25%; }
+.bk-conn::after  { top: 75%; }
+.bk-conn--sf { flex: 0 0 10px; width: 10px; margin: 8px 0; }
+
+/* ── Tarjeta de partido ── */
+.bk-card {
+    background: #1e293b;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #263248;
+    transition: border-color .15s;
+    width: 100%;
+}
+.bk-card:hover    { border-color: #3b5275; }
+.bk-empty         { opacity: .25; pointer-events: none; }
+
+.bk-card--sm  { font-size: .75rem; }
+.bk-card--md  { font-size: .77rem; }
+.bk-card--lg  { font-size: .80rem; }
+.bk-card--xl  { font-size: .85rem; }
+
+/* ── Slot de equipo ── */
+.bk-slot {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid #0f172a;
+    min-height: 28px;
+}
+.bk-slot:last-child { border-bottom: none; }
+
+/* Normal: nombre ── owner ── score */
+.bk-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #94a3b8;
+    font-size: inherit;
+}
+.bk-ow {
+    font-size: .58rem;
+    color: #475569;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.bk-sc {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #475569;
+    min-width: 14px;
+    text-align: right;
+    flex-shrink: 0;
+}
+.bk-date-tag {
+    font-size: .58rem;
+    color: #334155;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Espejo: score ── owner ── nombre */
+.bk-slot--mirror {
+    flex-direction: row-reverse;  /* invierte el orden visual */
+}
+.bk-slot--mirror .bk-name { text-align: right; }
+.bk-slot--mirror .bk-sc   { text-align: left; }
+
+/* Estados */
+.bk-winner            { background: #0d2318; }
+.bk-winner .bk-name   { color: #22c55e; font-weight: 700; }
+.bk-w                 { color: #22c55e !important; }
+.bk-tbd .bk-name      { color: #334155; font-style: italic; font-size: .7rem; }
+.bk-fam               { background: #1c2035; }
+.bk-fam .bk-name      { color: #f59e0b; }
+
+/* ── Centro: Final ── */
+.bk-center {
+    flex: 0 0 auto;
+    width: 168px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0 6px;
+    z-index: 1;
+}
+.bk-final-badge {
+    font-size: .62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #f59e0b;
+    text-align: center;
+}
+.bk-final-venue {
+    font-size: .58rem;
+    color: #475569;
+    text-align: center;
+    margin-top: -4px;
+}
+.bk-center .bk-card {
+    border-color: #f59e0b55;
+    background: linear-gradient(160deg, #1e293b, #1c1a0a);
+    box-shadow: 0 0 24px #f59e0b18;
+}
+.bk-center .bk-card:hover { border-color: #f59e0b99; }
+
+/* ── Campeón ── */
+.bk-champion {
+    background: linear-gradient(160deg,#1e293b,#0a2018);
+    border: 1px solid #22c55e44;
+    border-radius: 12px;
+    padding: 12px 14px;
+    text-align: center;
+    width: 100%;
+    animation: bkIn .5s ease;
+}
+.bk-champion--pending { background:#1e293b; border-color:#1e293b; }
+@keyframes bkIn { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
+.bk-champ-trophy  { font-size: 1.8rem; }
+.bk-champ-name    { font-size: 1rem; font-weight: 800; color: #22c55e; margin-top: 2px; }
+.bk-champ-label   { font-size: .65rem; color: #64748b; margin-top: 1px; }
+.bk-champ-owner   { font-size: .78rem; color: #fbbf24; margin-top: 4px; font-weight: 600; }
+.bk-final-date    { font-size: .65rem; color: #475569; margin-top: 4px; }
+
+/* ── Tercer lugar ── */
+.bk-third-place { margin-top: 18px; }
+.bk-tp-label {
+    font-size: .7rem; color: #64748b; margin-bottom: 6px;
+    text-align: center; text-transform: uppercase; letter-spacing: .05em;
+}
+.bk-tp-cards { max-width: 200px; margin: 0 auto; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .bk-bracket { min-width: 960px; }
+    .bk-col     { width: 132px; }
+    .bk-center  { width: 152px; }
+}
