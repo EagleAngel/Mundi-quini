@@ -221,7 +221,7 @@ function renderTodayMatches(elim) {
                 <div class="td-final">Final</div>
             </div>`;
         } else if (isLiveSection) {
-            score = `<div class="td-score-wrap"><div class="td-live">🔴 EN VIVO</div></div>`;
+            score = `<div class="td-score-wrap"><a class="td-live-link" href="https://www.google.com/search?q=mundial+futbol+2026+en+vivo" target="_blank" rel="noopener"><div class="td-live">🔴 EN VIVO</div></a></div>`;
         } else {
             const hora = m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
             score = `<div class="td-score-wrap"><div class="td-time">${hora}</div></div>`;
@@ -291,25 +291,15 @@ function renderMatches(elim) {
     const matches = getMatches();
     const now     = new Date();
 
-    // Agrupar por fecha ISO (YYYY-MM-DD) para garantizar orden cronológico
     const byDate = {};
     matches.forEach(m => {
-        const d      = new Date(m.isoDate);
-        const isoDay = m.isoDate.slice(0,10);  // clave de ordenación
-        const label  = d.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
-        if (!byDate[isoDay]) byDate[isoDay] = { label, games:[] };
-        byDate[isoDay].games.push({...m, kickoff:d});
+        const d     = new Date(m.isoDate);
+        const label = d.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+        if (!byDate[label]) byDate[label]=[];
+        byDate[label].push({...m, kickoff:d});
     });
-    // Ordenar partidos dentro de cada día por hora
-    Object.values(byDate).forEach(day => day.games.sort((a,b)=>a.kickoff-b.kickoff));
 
-    // Ordenar fechas cronológicamente
-    const sortedDays = Object.keys(byDate).sort();
-
-    sortedDays.forEach(isoDay => {
-        const { label, games } = byDate[isoDay];
-        const dateLabel = label;
-
+    Object.entries(byDate).forEach(([dateLabel, games]) => {
         const hdr = document.createElement("h3");
         hdr.className   = "date-header";
         hdr.textContent = dateLabel.charAt(0).toUpperCase()+dateLabel.slice(1);
@@ -333,18 +323,15 @@ function renderMatches(elim) {
                     ${m.htHome!==null?`<div class="ht-score">MT ${m.htHome}-${m.htAway}</div>`:""}
                     <div class="final-badge">Final</div></div>`;
             } else if (liveFlag) {
-                scoreBlock=`<div class="score-box"><div class="live-badge">🔴 EN VIVO</div></div>`;
+                scoreBlock=`<div class="score-box"><a class="live-link" href="https://www.google.com/search?q=mundial+futbol+2026+en+vivo" target="_blank" rel="noopener"><div class="live-badge">🔴 EN VIVO</div></a></div>`;
             } else {
                 const hora=m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
                 scoreBlock=`<div class="score-box"><div class="kick-time">${hora}</div></div>`;
             }
 
-            const groupBadge = m.group ? `<div class="group-badge">Grupo ${m.group}</div>` : "";
-
             const card=document.createElement("div");
             card.className=`match-card ${played?"played":""} ${liveFlag?"live-card":""}`;
             card.innerHTML=`
-                ${groupBadge}
                 <div class="match-team ${homeElim?"elim-team":""}">
                     <div class="team-name">${window.getFlag?window.getFlag(m.home):""} ${m.home}</div>
                     ${homeOwner?`<div class="owner">👤 ${homeOwner}</div>`:""}
