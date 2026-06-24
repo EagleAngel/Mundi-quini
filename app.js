@@ -290,62 +290,141 @@ function renderMatches(elim) {
     container.innerHTML = "";
     const matches = getMatches();
     const now     = new Date();
+    const todayStr = now.toISOString().slice(0,10);
 
-    const byDate = {};
+    // ── Separar en 3 bloques: en vivo, próximos, pasados ──────────────
+    const live    = [];
+    const upcoming= [];
+    const past    = [];
+
     matches.forEach(m => {
-        const d     = new Date(m.isoDate);
-        const label = d.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
-        if (!byDate[label]) byDate[label]=[];
-        byDate[label].push({...m, kickoff:d});
+        const kickoff = new Date(m.isoDate);
+        const played  = m.homeScore !== null && m.awayScore !== null;
+        const diffMin = (now - kickoff) / 60000;
+        const isLive  = !played && diffMin >= -5 && diffMin <= 110;
+
+        if (isLive)   live.push({...m, kickoff});
+        else if (!played) upcoming.push({...m, kickoff});
+        else          past.push({...m, kickoff});
     });
 
-    Object.entries(byDate).forEach(([dateLabel, games]) => {
-        const hdr = document.createElement("h3");
-        hdr.className   = "date-header";
-        hdr.textContent = dateLabel.charAt(0).toUpperCase()+dateLabel.slice(1);
-        container.appendChild(hdr);
+    // Próximos: más cercano primero
+    upcoming.sort((a,b) => a.kickoff - b.kickoff);
+    // Pasados: más reciente primero
+    past.sort((a,b) => b.kickoff - a.kickoff);
 
-        games.forEach(m => {
-            const played   = m.homeScore!==null && m.awayScore!==null;
-            const diffMin  = (now-m.kickoff)/60000;
-            const liveFlag = !played && diffMin>=-5 && diffMin<=110;
-            const homeElim  = elim.includes(m.home);
-            const awayElim  = elim.includes(m.away);
-            const homeOwner = participantsData.find(p=>p.teams.includes(m.home))?.name||"";
-            const awayOwner = participantsData.find(p=>p.teams.includes(m.away))?.name||"";
-            const goalStr   = goals=>goals.length?goals.map(g=>`<span class="goalscorer">⚽ ${g.name}${g.penalty?" (P)":""} ${g.minute}'</span>`).join(""):"";
+    // ── Render de una tarjeta ──────────────────────────────────────────
+    const goalStr = goals => goals.length
+        ? goals.map(g=>`<span class="goalscorer">⚽ ${g.name}${g.penalty?" (P)":""} ${g.minute}'</span>`).join("")
+        : "";
 
-            let scoreBlock;
-            if (played) {
-                const hw=m.homeScore>m.awayScore, aw=m.awayScore>m.homeScore;
-                scoreBlock=`<div class="score-box">
-                    <div class="score-nums"><span class="sc ${hw?"win":""}">${m.homeScore}</span><span class="sc-sep">-</span><span class="sc ${aw?"win":""}">${m.awayScore}</span></div>
-                    ${m.htHome!==null?`<div class="ht-score">MT ${m.htHome}-${m.htAway}</div>`:""}
-                    <div class="final-badge">Final</div></div>`;
-            } else if (liveFlag) {
-                scoreBlock=`<div class="score-box"><a class="live-link" href="https://www.google.com/search?q=mundial+futbol+2026+en+vivo" target="_blank" rel="noopener"><div class="live-badge">🔴 EN VIVO</div></a></div>`;
-            } else {
-                const hora=m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
-                scoreBlock=`<div class="score-box"><div class="kick-time">${hora}</div></div>`;
-            }
+    function buildCard(m, isLive) {
+        const played    = m.homeScore !== null && m.awayScore !== null;
+        const homeElim  = elim.includes(m.home);
+        const awayElim  = elim.includes(m.away);
+        const homeOwner = participantsData.find(p=>p.teams.includes(m.home))?.name||"";
+        const awayOwner = participantsData.find(p=>p.teams.includes(m.away))?.name||"";
+        const groupTag  = m.group ? `<span class="match-group-tag">Grupo ${m.group}</span>` : "";
 
-            const card=document.createElement("div");
-            card.className=`match-card ${played?"played":""} ${liveFlag?"live-card":""}`;
-            card.innerHTML=`
-                <div class="match-team ${homeElim?"elim-team":""}">
-                    <div class="team-name">${window.getFlag?window.getFlag(m.home):""} ${m.home}</div>
-                    ${homeOwner?`<div class="owner">👤 ${homeOwner}</div>`:""}
-                    <div class="goals-list">${goalStr(m.goals1||[])}</div>
+        let scoreBlock;
+        if (played) {
+            const hw = m.homeScore > m.awayScore, aw = m.awayScore > m.homeScore;
+            scoreBlock = `<div class="score-box">
+                <div class="score-nums">
+                    <span class="sc ${hw?"win":""}">${m.homeScore}</span>
+                    <span class="sc-sep">-</span>
+                    <span class="sc ${aw?"win":""}">${m.awayScore}</span>
                 </div>
-                ${scoreBlock}
-                <div class="match-team right ${awayElim?"elim-team":""}">
-                    <div class="team-name">${window.getFlag?window.getFlag(m.away):""} ${m.away}</div>
-                    ${awayOwner?`<div class="owner">👤 ${awayOwner}</div>`:""}
-                    <div class="goals-list">${goalStr(m.goals2||[])}</div>
-                </div>`;
-            container.appendChild(card);
+                ${m.htHome!==null?`<div class="ht-score">MT ${m.htHome}-${m.htAway}</div>`:""}
+                <div class="final-badge">Final</div>
+            </div>`;
+        } else if (isLive) {
+            scoreBlock = `<div class="score-box">
+                <a class="live-link" href="https://www.google.com/search?q=mundial+futbol+2026+en+vivo" target="_blank" rel="noopener">
+                    <div class="live-badge">🔴 EN VIVO</div>
+                </a>
+            </div>`;
+        } else {
+            const hora = m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+            // Mostrar "Hoy" si es el mismo día
+            const dayStr = m.isoDate.slice(0,10) === todayStr ? "Hoy" : "";
+            scoreBlock = `<div class="score-box">
+                <div class="kick-time">${dayStr ? `<span class="today-tag">Hoy</span>` : ""}${hora}</div>
+            </div>`;
+        }
+
+        const card = document.createElement("div");
+        card.className = `match-card ${played?"played":""} ${isLive?"live-card":""}`;
+        card.innerHTML = `
+            ${groupTag}
+            <div class="match-team ${homeElim?"elim-team":""}">
+                <div class="team-name">${window.getFlag?window.getFlag(m.home):""} ${m.home}</div>
+                ${homeOwner?`<div class="owner">👤 ${homeOwner}</div>`:""}
+                <div class="goals-list">${goalStr(m.goals1||[])}</div>
+            </div>
+            ${scoreBlock}
+            <div class="match-team right ${awayElim?"elim-team":""}">
+                <div class="team-name">${window.getFlag?window.getFlag(m.away):""} ${m.away}</div>
+                ${awayOwner?`<div class="owner">👤 ${awayOwner}</div>`:""}
+                <div class="goals-list">${goalStr(m.goals2||[])}</div>
+            </div>`;
+        return card;
+    }
+
+    // ── Sección helper ─────────────────────────────────────────────────
+    function addSection(label, icon, items, isLiveSection = false, collapsible = false) {
+        if (items.length === 0) return;
+
+        const section = document.createElement("div");
+        section.className = "cal-section";
+
+        // Agrupar por fecha dentro de la sección
+        const byDate = {};
+        items.forEach(m => {
+            const key = m.isoDate.slice(0,10);
+            if (!byDate[key]) byDate[key] = { label: m.kickoff.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}), items: [] };
+            byDate[key].items.push(m);
         });
-    });
+
+        let html = `<div class="cal-section-header ${isLiveSection?"cal-live-header":""}">
+            <span>${icon} ${label}</span>
+            <span class="cal-count">${items.length} partido${items.length!==1?"s":""}</span>
+        </div>`;
+
+        if (collapsible) {
+            html += `<div class="cal-section-body cal-collapsed" id="past-body">`;
+        } else {
+            html += `<div class="cal-section-body">`;
+        }
+
+        Object.entries(byDate).forEach(([isoDay, {label: dayLabel, items: dayGames}]) => {
+            html += `<div class="date-header">${dayLabel.charAt(0).toUpperCase()+dayLabel.slice(1)}</div>`;
+            section.innerHTML = html + `</div>`;
+            container.appendChild(section);
+            dayGames.forEach(m => section.querySelector(".cal-section-body").appendChild(buildCard(m, isLiveSection)));
+            html = ""; // ya no necesitamos html, appendeamos directo
+        });
+
+        if (html) { section.innerHTML = html + `</div>`; container.appendChild(section); }
+
+        // Botón expandir para pasados
+        if (collapsible) {
+            const btn = document.createElement("button");
+            btn.className = "cal-expand-btn";
+            btn.textContent = "▼ Ver partidos anteriores";
+            btn.onclick = () => {
+                const body = document.getElementById("past-body");
+                body.classList.toggle("cal-collapsed");
+                btn.textContent = body.classList.contains("cal-collapsed") ? "▼ Ver partidos anteriores" : "▲ Ocultar anteriores";
+            };
+            container.appendChild(btn);
+        }
+    }
+
+    // ── Renderizar los 3 bloques ───────────────────────────────────────
+    addSection("En vivo",   "🔴", live,     true,  false);
+    addSection("Próximos",  "📅", upcoming, false, false);
+    addSection("Resultados","✅", past,     false, true);  // colapsable
 }
 
 // ── Gráfica ────────────────────────────────────────────────────────────
