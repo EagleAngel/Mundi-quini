@@ -447,3 +447,77 @@ h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #94a3b8; }
     .bk-col     { width: 132px; }
     .bk-center  { width: 155px; }
 }
+
+/* ════════════════════════════════════════════════════════
+   CALENDARIO — Secciones por estado
+════════════════════════════════════════════════════════ */
+
+/* Sección (en vivo / próximos / resultados) */
+.cal-section { margin-bottom: 20px; }
+
+.cal-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #1e293b;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: .78rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+.cal-live-header {
+    background: #1a1020;
+    border: 1px solid #ef444433;
+    color: #ef4444;
+    animation: pulse 2s infinite;
+}
+.cal-count {
+    font-size: .68rem;
+    font-weight: 400;
+    color: #475569;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* Ocultar resultados por defecto */
+.cal-collapsed { display: none; }
+
+/* Botón expandir resultados */
+.cal-expand-btn {
+    width: 100%;
+    padding: 10px;
+    background: #1e293b;
+    border: 1px dashed #334155;
+    border-radius: 10px;
+    color: #64748b;
+    font-size: .8rem;
+    cursor: pointer;
+    transition: background .2s, color .2s;
+    margin-top: 4px;
+}
+.cal-expand-btn:hover { background: #263248; color: #94a3b8; }
+
+/* Tag "Hoy" dentro del kick-time */
+.today-tag {
+    display: block;
+    font-size: .6rem;
+    color: #38bdf8;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 1px;
+}
+
+/* Tag de grupo en la tarjeta */
+.match-group-tag {
+    grid-column: 1 / -1;
+    font-size: .6rem;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: 0 0 2px 2px;
+}
