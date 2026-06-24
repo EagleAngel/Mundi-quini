@@ -375,47 +375,56 @@ function renderMatches(elim) {
     function addSection(label, icon, items, isLiveSection = false, collapsible = false) {
         if (items.length === 0) return;
 
-        const section = document.createElement("div");
-        section.className = "cal-section";
+        // Header de la sección
+        const header = document.createElement("div");
+        header.className = `cal-section-header ${isLiveSection ? "cal-live-header" : ""}`;
+        header.innerHTML = `<span>${icon} ${label}</span>
+            <span class="cal-count">${items.length} partido${items.length!==1?"s":""}</span>`;
+        container.appendChild(header);
 
-        // Agrupar por fecha dentro de la sección
+        // Body (colapsable o no)
+        const body = document.createElement("div");
+        body.className = "cal-section-body" + (collapsible ? " cal-collapsed" : "");
+        if (collapsible) body.id = "past-body";
+        container.appendChild(body);
+
+        // Agrupar por fecha y ordenar cronológicamente
         const byDate = {};
         items.forEach(m => {
             const key = m.isoDate.slice(0,10);
-            if (!byDate[key]) byDate[key] = { label: m.kickoff.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}), items: [] };
-            byDate[key].items.push(m);
+            if (!byDate[key]) byDate[key] = {
+                label: m.kickoff.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}),
+                games: []
+            };
+            byDate[key].games.push(m);
         });
 
-        let html = `<div class="cal-section-header ${isLiveSection?"cal-live-header":""}">
-            <span>${icon} ${label}</span>
-            <span class="cal-count">${items.length} partido${items.length!==1?"s":""}</span>
-        </div>`;
+        // Ordenar fechas
+        const sortedDates = Object.keys(byDate).sort(
+            isLiveSection ? undefined : (collapsible ? (a,b) => b.localeCompare(a) : (a,b) => a.localeCompare(b))
+        );
 
-        if (collapsible) {
-            html += `<div class="cal-section-body cal-collapsed" id="past-body">`;
-        } else {
-            html += `<div class="cal-section-body">`;
-        }
+        sortedDates.forEach(isoDay => {
+            const { label: dayLabel, games: dayGames } = byDate[isoDay];
 
-        Object.entries(byDate).forEach(([isoDay, {label: dayLabel, items: dayGames}]) => {
-            html += `<div class="date-header">${dayLabel.charAt(0).toUpperCase()+dayLabel.slice(1)}</div>`;
-            section.innerHTML = html + `</div>`;
-            container.appendChild(section);
-            dayGames.forEach(m => section.querySelector(".cal-section-body").appendChild(buildCard(m, isLiveSection)));
-            html = ""; // ya no necesitamos html, appendeamos directo
+            const dateHdr = document.createElement("div");
+            dateHdr.className = "date-header";
+            dateHdr.textContent = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
+            body.appendChild(dateHdr);
+
+            dayGames.forEach(m => body.appendChild(buildCard(m, isLiveSection)));
         });
 
-        if (html) { section.innerHTML = html + `</div>`; container.appendChild(section); }
-
-        // Botón expandir para pasados
+        // Botón expandir para resultados pasados
         if (collapsible) {
             const btn = document.createElement("button");
             btn.className = "cal-expand-btn";
             btn.textContent = "▼ Ver partidos anteriores";
             btn.onclick = () => {
-                const body = document.getElementById("past-body");
                 body.classList.toggle("cal-collapsed");
-                btn.textContent = body.classList.contains("cal-collapsed") ? "▼ Ver partidos anteriores" : "▲ Ocultar anteriores";
+                btn.textContent = body.classList.contains("cal-collapsed")
+                    ? "▼ Ver partidos anteriores"
+                    : "▲ Ocultar anteriores";
             };
             container.appendChild(btn);
         }
