@@ -1,3 +1,40 @@
+// ── Alerta de eliminacion ─────────────────────────────────────────────
+function checkNewEliminations(elim) {
+    const newly = elim.filter(t => !prevEliminated.includes(t));
+    if (!newly.length) { prevEliminated = [...elim]; return; }
+    newly.forEach(team => {
+        const owner = participantsData.find(p => p.teams.includes(team));
+        if (!owner) return;
+        showEliminationAlert(window.getFlag ? window.getFlag(team) : "", team, owner.name);
+    });
+    prevEliminated = [...elim];
+}
+function showEliminationAlert(flag, team, owner) {
+    document.querySelectorAll(".elim-alert").forEach(e => e.remove());
+    const d = document.createElement("div");
+    d.className = "elim-alert";
+    d.innerHTML = '<div class="elim-alert-inner">'
+        + '<span class="elim-skull">\u{1F480}</span>'
+        + '<div class="elim-alert-text">'
+        + '<strong>' + flag + ' ' + team + '</strong> fue eliminado'
+        + '<span class="elim-alert-owner">Le toco a ' + owner + '</span>'
+        + '</div>'
+        + '<button class="elim-close" onclick="this.closest(\'.elim-alert\').remove()">\u2715</button>'
+        + '</div>';
+    document.body.appendChild(d);
+    setTimeout(() => { d.classList.add("elim-alert--out"); setTimeout(() => d.remove(), 400); }, 6000);
+}
+window.shareWhatsApp = function() {
+    const elim = getAllEliminated();
+    const rnk  = participantsData
+        .map(p => ({ name: p.name, alive: p.teams.filter(t => !elim.includes(t)).length }))
+        .sort((a,b) => b.alive - a.alive);
+    const med  = ["\uD83E\uDD47","\uD83E\uDD48","\uD83E\uDD49"];
+    const lines= rnk.map((p,i) => (med[i]||(i+1)+"°")+" "+p.name+" \u2014 "+p.alive+" equipo"+(p.alive!==1?"s":"")+" vivo"+(p.alive!==1?"s":"")).join("\n");
+    const tot  = [...new Set(participantsData.flatMap(p=>p.teams))].length;
+    const txt  = "\uD83C\uDFC6 *Quiniela Familiar Mundial 2026*\n\n"+lines+"\n\n\u26BD "+elim.length+" de "+tot+" equipos eliminados\n_"+new Date().toLocaleDateString("es-MX",{day:"numeric",month:"short"})+"_";
+    window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");
+};
 import { db, doc, setDoc, onSnapshot } from "./firebase.js";
 
 const API_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
@@ -124,6 +161,7 @@ window.toggleEliminated = function(team) {
 // ── Render principal ───────────────────────────────────────────────────
 function renderAll() {
     const elim = getAllEliminated();
+    checkNewEliminations(elim);
     renderSummary(elim);
     renderTodayMatches(elim);
     renderParticipants(elim);
@@ -281,7 +319,8 @@ function renderRanking(elim) {
             <span class="pos">${medals[i]||"#"+(i+1)}</span>
             <span class="name">${p.name}</span>
             <span class="pts">${p.alive} equipo${p.alive!==1?"s":""} vivo${p.alive!==1?"s":""}</span>
-        </div>`).join("");
+        </div>`).join("") +
+        `<button class="whatsapp-btn" onclick="shareWhatsApp()">📲 Compartir por WhatsApp</button>`;
 }
 
 // ── Calendario ─────────────────────────────────────────────────────────
@@ -395,87 +434,4 @@ function renderMatches(elim) {
             if (!byDate[key]) byDate[key] = {
                 label: m.kickoff.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}),
                 games: []
-            };
-            byDate[key].games.push(m);
-        });
-
-        // Ordenar fechas
-        const sortedDates = Object.keys(byDate).sort(
-            isLiveSection ? undefined : (collapsible ? (a,b) => b.localeCompare(a) : (a,b) => a.localeCompare(b))
-        );
-
-        sortedDates.forEach(isoDay => {
-            const { label: dayLabel, games: dayGames } = byDate[isoDay];
-
-            const dateHdr = document.createElement("div");
-            dateHdr.className = "date-header";
-            dateHdr.textContent = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
-            body.appendChild(dateHdr);
-
-            dayGames.forEach(m => body.appendChild(buildCard(m, isLiveSection)));
-        });
-
-        // Botón expandir para resultados pasados
-        if (collapsible) {
-            const btn = document.createElement("button");
-            btn.className = "cal-expand-btn";
-            btn.textContent = "▼ Ver partidos anteriores";
-            btn.onclick = () => {
-                body.classList.toggle("cal-collapsed");
-                btn.textContent = body.classList.contains("cal-collapsed")
-                    ? "▼ Ver partidos anteriores"
-                    : "▲ Ocultar anteriores";
-            };
-            container.appendChild(btn);
-        }
-    }
-
-    // ── Renderizar los 3 bloques ───────────────────────────────────────
-    addSection("En vivo",   "🔴", live,     true,  false);
-    addSection("Próximos",  "📅", upcoming, false, false);
-    addSection("Resultados","✅", past,     false, true);  // colapsable
-}
-
-// ── Gráfica ────────────────────────────────────────────────────────────
-function renderChart(elim) {
-    const labels = participantsData.map(p=>p.name);
-    const values = participantsData.map(p=>p.teams.filter(t=>!elim.includes(t)).length);
-    if (chart) chart.destroy();
-    chart=new Chart(document.getElementById("probabilityChart"),{
-        type:"bar",
-        data:{labels,datasets:[{label:"Equipos vivos",data:values,
-            backgroundColor:values.map(v=>v===0?"#ef4444":v===1?"#f97316":"#22c55e"),borderRadius:6}]},
-        options:{responsive:true,
-            plugins:{legend:{labels:{color:"white"}}},
-            scales:{x:{ticks:{color:"white"}},y:{ticks:{color:"white",stepSize:1},beginAtZero:true}}}
-    });
-}
-
-// ── Tabs ───────────────────────────────────────────────────────────────
-function initTabs() {
-    document.querySelectorAll(".tab-btn").forEach(btn=>{
-        btn.addEventListener("click",()=>{
-            document.querySelectorAll(".tab-content").forEach(t=>t.classList.remove("active"));
-            document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
-            document.getElementById(btn.dataset.tab).classList.add("active");
-            btn.classList.add("active");
-            if (btn.dataset.tab==="estadisticas")  renderChart(getAllEliminated());
-            if (btn.dataset.tab==="eliminatoria" && window.renderBracket) {
-                window.renderBracket();
-                // refrescar cada 5 min mientras está abierto
-                clearInterval(window._bracketTimer);
-                window._bracketTimer = setInterval(window.renderBracket, 5*60*1000);
-            } else {
-                clearInterval(window._bracketTimer);
-            }
-        });
-    });
-}
-
-// ── Init ───────────────────────────────────────────────────────────────
-initTabs();
-renderAll();
-fetchLiveScores().then(()=>renderAll());
-listenSettings();
-setInterval(()=>fetchLiveScores().then(()=>renderAll()), 3*60*1000);
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+       
