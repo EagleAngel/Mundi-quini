@@ -521,3 +521,102 @@ h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #94a3b8; }
     letter-spacing: .05em;
     padding: 0 0 2px 2px;
 }
+
+/* ── Alerta eliminacion ── */
+.elim-alert {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999; width: calc(100% - 32px); max-width: 420px;
+    animation: alertIn .35s cubic-bezier(.175,.885,.32,1.275);
+}
+.elim-alert--out { animation: alertOut .4s ease forwards; }
+@keyframes alertIn {
+    from { opacity:0; transform:translateX(-50%) translateY(20px) scale(.95); }
+    to   { opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+}
+@keyframes alertOut {
+    to { opacity:0; transform:translateX(-50%) translateY(16px) scale(.95); }
+}
+.elim-alert-inner {
+    display:flex; align-items:center; gap:12px;
+    background:#1e1e1e; border:1px solid #ef444488;
+    border-radius:14px; padding:14px 16px;
+    box-shadow:0 8px 32px #00000066;
+}
+.elim-skull { font-size:1.8rem; flex-shrink:0; animation:skullShake .5s ease; }
+@keyframes skullShake {
+    0%,100%{transform:rotate(0)} 20%{transform:rotate(-12deg)}
+    40%{transform:rotate(12deg)} 60%{transform:rotate(-8deg)} 80%{transform:rotate(8deg)}
+}
+.elim-alert-text { flex:1; display:flex; flex-direction:column; gap:2px; }
+.elim-alert-text strong { font-size:.95rem; color:#ef4444; }
+.elim-alert-owner { font-size:.78rem; color:#94a3b8; }
+.elim-close {
+    background:none; border:none; color:#475569;
+    font-size:1rem; cursor:pointer; padding:2px 6px;
+    border-radius:6px; flex-shrink:0;
+}
+.elim-close:hover { color:#94a3b8; }
+
+/* ── Boton WhatsApp ── */
+.whatsapp-btn {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; margin-top:14px; padding:12px;
+    background:#16a34a; color:white; border:none;
+    border-radius:12px; font-size:.95rem; font-weight:700;
+    cursor:pointer; transition:background .2s, transform .1s;
+}
+.whatsapp-btn:hover  { background:#15803d; }
+.whatsapp-btn:active { transform:scale(.97); }
+
+/* ── Seccion calendario ── */
+.cal-section-header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 12px; background:#1e293b; border-radius:10px;
+    margin-bottom:8px; font-size:.78rem; font-weight:700;
+    color:#94a3b8; text-transform:uppercase; letter-spacing:.06em;
+}
+.cal-live-header { background:#1a1020; border:1px solid #ef444433; color:#ef4444; }
+.cal-count { font-size:.68rem; font-weight:400; color:#475569; text-transform:none; letter-spacing:0; }
+.cal-collapsed { display:none; }
+.cal-expand-btn {
+    width:100%; padding:10px; background:#1e293b;
+    border:1px dashed #334155; border-radius:10px;
+    color:#64748b; font-size:.8rem; cursor:pointer; margin-top:4px;
+    transition:background .2s, color .2s;
+}
+.cal-expand-btn:hover { background:#263248; color:#94a3b8; }
+.today-tag {
+    display:block; font-size:.6rem; color:#38bdf8;
+    font-weight:700; text-transform:uppercase;
+    letter-spacing:.05em; margin-bottom:1px;
+}
+.match-group-tag {
+    grid-column:1/-1; font-size:.6rem; color:#334155;
+    text-transform:uppercase; letter-spacing:.05em; padding:0 0 2px 2px;
+}
+
+/* ── Mobile fixes ── */
+@media (max-width: 480px) {
+    .tabs { gap:5px; }
+    .tab-btn { padding:7px 8px; font-size:.72rem; flex:1 1 calc(33% - 5px); text-align:center; }
+    .dashboard { gap:7px; }
+    .card { min-width:0; padding:12px 8px; }
+    .card h2 { font-size:.7rem; }
+    .card .big { font-size:1.5rem; }
+    .match-card { grid-template-columns:1fr 68px 1fr; padding:8px 7px; gap:4px; }
+    .team-name { font-size:.78rem; }
+    .sc { font-size:1.1rem; }
+    .today-card { grid-template-columns:1fr 66px 1fr; padding:8px; }
+    .td-name { font-size:.8rem; }
+    .td-sc { font-size:1.1rem; }
+    .team { font-size:.75rem; padding:4px 7px; margin:2px; }
+    .whatsapp-btn { font-size:.85rem; padding:11px; }
+    .elim-alert { width:calc(100% - 20px); bottom:16px; }
+}
+@media (max-width: 768px) {
+    .bk-scroll-wrap::after {
+        content:"← desliza →"; display:block;
+        text-align:center; font-size:.65rem; color:#475569; margin-top:6px;
+    }
+}
