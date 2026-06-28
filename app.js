@@ -1,3 +1,5 @@
+import { db, doc, setDoc, onSnapshot } from "./firebase.js";
+
 // ── Alerta de eliminacion ─────────────────────────────────────────────
 function checkNewEliminations(elim) {
     const newly = elim.filter(t => !prevEliminated.includes(t));
@@ -35,7 +37,6 @@ window.shareWhatsApp = function() {
     const txt  = "\uD83C\uDFC6 *Quiniela Familiar Mundial 2026*\n\n"+lines+"\n\n\u26BD "+elim.length+" de "+tot+" equipos eliminados\n_"+new Date().toLocaleDateString("es-MX",{day:"numeric",month:"short"})+"_";
     window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");
 };
-import { db, doc, setDoc, onSnapshot } from "./firebase.js";
 
 const API_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
 
