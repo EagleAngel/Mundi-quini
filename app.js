@@ -76,22 +76,83 @@ function showStatus(msg) {
     if (el) el.textContent = msg;
 }
 
-// ── Eliminados automáticos ─────────────────────────────────────────────
+// ── Eliminados automáticos (lógica de clasificación real) ─────────────
 function computeAutoEliminated() {
-    const stats = {};
-    getMatches().forEach(m => {
+    const matches = getMatches();
+
+    // 1. Construir tabla por grupo con todos los partidos jugados
+    const groups = {};
+    matches.forEach(m => {
         if (m.homeScore === null || m.awayScore === null) return;
-        [m.home, m.away].forEach(t => { if (!stats[t]) stats[t]={pts:0,played:0,lost:0}; stats[t].played++; });
-        if      (m.homeScore > m.awayScore) { stats[m.home].pts+=3; stats[m.away].lost++; }
-        else if (m.homeScore < m.awayScore) { stats[m.away].pts+=3; stats[m.home].lost++; }
-        else { stats[m.home].pts+=1; stats[m.away].pts+=1; }
+        if (!m.group) return; // solo fase de grupos
+        [m.home, m.away].forEach(t => {
+            if (!groups[t]) groups[t] = { pts:0, gd:0, gf:0, played:0, group:m.group };
+        });
+        groups[m.home].gf += m.homeScore; groups[m.home].gd += (m.homeScore - m.awayScore); groups[m.home].played++;
+        groups[m.away].gf += m.awayScore; groups[m.away].gd += (m.awayScore - m.homeScore); groups[m.away].played++;
+        if      (m.homeScore > m.awayScore) { groups[m.home].pts+=3; }
+        else if (m.homeScore < m.awayScore) { groups[m.away].pts+=3; }
+        else    { groups[m.home].pts+=1; groups[m.away].pts+=1; }
     });
-    const auto = [];
-    Object.entries(stats).forEach(([t,s]) => {
-        if (s.played>=3 && s.lost===3)              auto.push(t);
-        if (s.played>=2 && s.lost>=2 && s.pts===0)  auto.push(t);
+
+    // Si no hay datos de grupos aún, retornar vacío
+    if (Object.keys(groups).length === 0) return [];
+
+    // 2. Agrupar equipos por grupo
+    const byGroup = {};
+    Object.entries(groups).forEach(([team, s]) => {
+        if (!byGroup[s.group]) byGroup[s.group] = [];
+        byGroup[s.group].push([team, s]);
     });
-    return [...new Set(auto)];
+
+    // Solo procesar grupos completos (3 partidos por equipo = 4 equipos con played>=3... o al menos todos con played=3)
+    const completeGroups = Object.entries(byGroup).filter(([g, teams]) =>
+        teams.length === 4 && teams.every(([,s]) => s.played === 3)
+    );
+
+    if (completeGroups.length === 0) {
+        // Grupos incompletos: solo eliminar los matemáticamente imposibles
+        const auto = [];
+        Object.entries(groups).forEach(([t,s]) => {
+            if (s.played>=3 && s.pts===0) auto.push(t);
+            if (s.played>=2 && s.pts===0 && (3-s.played)*3 < 4) auto.push(t); // no puede llegar a 4 pts
+        });
+        return [...new Set(auto)];
+    }
+
+    // 3. Clasificar: 1° y 2° de cada grupo + 8 mejores terceros
+    const classif = new Set();
+    const thirds  = [];
+    const elim    = [];
+
+    completeGroups.forEach(([g, teams]) => {
+        const ranked = teams.sort((a,b) => b[1].pts-a[1].pts || b[1].gd-a[1].gd || b[1].gf-a[1].gf);
+        classif.add(ranked[0][0]); // 1°
+        classif.add(ranked[1][0]); // 2°
+        thirds.push(ranked[2]);    // 3° candidato
+        elim.push(ranked[3][0]);   // 4° eliminado directo
+    });
+
+    // 8 mejores terceros clasifican (Mundial 2026: 12 grupos → 8 mejores terceros)
+    if (completeGroups.length === 12) {
+        const sortedThirds = thirds.sort((a,b) => b[1].pts-a[1].pts || b[1].gd-a[1].gd || b[1].gf-a[1].gf);
+        sortedThirds.forEach(([team,], i) => {
+            if (i < 8) classif.add(team);
+            else       elim.push(team);
+        });
+    }
+
+    // También marcar como eliminados los que perdieron en Ronda de 32 en adelante
+    matches.forEach(m => {
+        if (m.homeScore === null || m.awayScore === null) return;
+        if (m.group) return; // ignorar fase de grupos aquí
+        // Perdedor de partido eliminatorio
+        if (m.homeScore < m.awayScore) elim.push(m.home);
+        else if (m.homeScore > m.awayScore) elim.push(m.away);
+        // Empate con penales: el app.js no tiene penales en allMatches, la API sí
+    });
+
+    return [...new Set(elim)];
 }
 function getAllEliminated() {
     return computeAutoEliminated();
