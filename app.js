@@ -137,26 +137,24 @@ function computeAutoEliminated() {
     return [...new Set(auto)];
 }
 function getAllEliminated() {
-    return [...new Set([...computeAutoEliminated(), ...manualEliminated])];
+    return computeAutoEliminated();
 }
 
 // ── Firebase (solo guarda eliminados manuales, ya no el campeón) ───────
 function listenSettings() {
     onSnapshot(doc(db, "settings", "tournament"), snap => {
         if (snap.exists()) {
-            manualEliminated = snap.data().manualEliminated || [];
+            // solo leemos el campeon, eliminaciones son automaticas
         }
         renderAll();
     });
 }
 async function saveSettings() {
-    await setDoc(doc(db,"settings","tournament"), { manualEliminated });
+    const sel = document.getElementById("championSelect");
+    await setDoc(doc(db,"settings","tournament"), {
+        champion: sel ? sel.value : "",
+    });
 }
-window.toggleEliminated = function(team) {
-    const idx = manualEliminated.indexOf(team);
-    if (idx===-1) manualEliminated.push(team); else manualEliminated.splice(idx,1);
-    saveSettings();
-};
 
 // ── Render principal ───────────────────────────────────────────────────
 function renderAll() {
@@ -297,10 +295,10 @@ function renderParticipants(elim) {
         player.teams.forEach(team => {
             const isElim = elim.includes(team);
             const isAuto = autoElim.includes(team);
-            const badge  = isAuto?"🔴":manualEliminated.includes(team)?"🟡":"";
+            const badge  = isAuto?"🔴":"";
             const flag = window.getFlag ? window.getFlag(team) : "";
-            html += `<span class="team ${isElim?"eliminated":""}" onclick="toggleEliminated('${team}')"
-                title="${isAuto?"Eliminado por resultados":isElim?"Eliminado manual (clic para restaurar)":"Clic para eliminar"}">
+            html += `<span class="team ${isElim?"eliminated":""}"
+                title="${isAuto?"Eliminado del torneo":"Activo"}">
                 ${flag} ${badge} ${team}</span>`;
         });
         html += `</div>`;
@@ -434,4 +432,3 @@ function renderMatches(elim) {
             if (!byDate[key]) byDate[key] = {
                 label: m.kickoff.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}),
                 games: []
-       
