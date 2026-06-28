@@ -1,43 +1,5 @@
 import { db, doc, setDoc, onSnapshot } from "./firebase.js";
 
-// ── Alerta de eliminacion ─────────────────────────────────────────────
-function checkNewEliminations(elim) {
-    const newly = elim.filter(t => !prevEliminated.includes(t));
-    if (!newly.length) { prevEliminated = [...elim]; return; }
-    newly.forEach(team => {
-        const owner = participantsData.find(p => p.teams.includes(team));
-        if (!owner) return;
-        showEliminationAlert(window.getFlag ? window.getFlag(team) : "", team, owner.name);
-    });
-    prevEliminated = [...elim];
-}
-function showEliminationAlert(flag, team, owner) {
-    document.querySelectorAll(".elim-alert").forEach(e => e.remove());
-    const d = document.createElement("div");
-    d.className = "elim-alert";
-    d.innerHTML = '<div class="elim-alert-inner">'
-        + '<span class="elim-skull">\u{1F480}</span>'
-        + '<div class="elim-alert-text">'
-        + '<strong>' + flag + ' ' + team + '</strong> fue eliminado'
-        + '<span class="elim-alert-owner">Le toco a ' + owner + '</span>'
-        + '</div>'
-        + '<button class="elim-close" onclick="this.closest(\'.elim-alert\').remove()">\u2715</button>'
-        + '</div>';
-    document.body.appendChild(d);
-    setTimeout(() => { d.classList.add("elim-alert--out"); setTimeout(() => d.remove(), 400); }, 6000);
-}
-window.shareWhatsApp = function() {
-    const elim = getAllEliminated();
-    const rnk  = participantsData
-        .map(p => ({ name: p.name, alive: p.teams.filter(t => !elim.includes(t)).length }))
-        .sort((a,b) => b.alive - a.alive);
-    const med  = ["\uD83E\uDD47","\uD83E\uDD48","\uD83E\uDD49"];
-    const lines= rnk.map((p,i) => (med[i]||(i+1)+"°")+" "+p.name+" \u2014 "+p.alive+" equipo"+(p.alive!==1?"s":"")+" vivo"+(p.alive!==1?"s":"")).join("\n");
-    const tot  = [...new Set(participantsData.flatMap(p=>p.teams))].length;
-    const txt  = "\uD83C\uDFC6 *Quiniela Familiar Mundial 2026*\n\n"+lines+"\n\n\u26BD "+elim.length+" de "+tot+" equipos eliminados\n_"+new Date().toLocaleDateString("es-MX",{day:"numeric",month:"short"})+"_";
-    window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");
-};
-
 const API_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
 
 const NAME_MAP = {
@@ -61,8 +23,9 @@ const es = n => NAME_MAP[n] || n;
 
 // ── Estado ─────────────────────────────────────────────────────────────
 let manualEliminated = [];
-let liveScores  = {};
-let autoChampion = "";   // campeón detectado automáticamente de la API
+let liveScores   = {};
+let autoChampion = "";
+let prevEliminated = [];
 let chart;
 
 // ── Mezcla datos locales + API ─────────────────────────────────────────
@@ -85,42 +48,35 @@ async function fetchLiveScores() {
         const res = await fetch(API_URL + "?t=" + Date.now());
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
-
         const map = {};
         let champion = "";
-
         data.matches.forEach(m => {
             if (!m.score) return;
             const homeEs = es(m.team1);
             const awayEs = es(m.team2);
-            const key = `${homeEs}|${awayEs}`;
-            map[key] = {
+            map[`${homeEs}|${awayEs}`] = {
                 homeScore: m.score.ft[0], awayScore: m.score.ft[1],
                 htHome: m.score.ht?.[0] ?? null, htAway: m.score.ht?.[1] ?? null,
                 goals1: m.goals1 || [], goals2: m.goals2 || [],
             };
-            // Detectar campeón: partido de la Final con resultado
             if (m.round === "Final") {
                 champion = m.score.ft[0] > m.score.ft[1] ? homeEs : awayEs;
             }
         });
-
         liveScores   = map;
         autoChampion = champion;
-
-        const ts = new Date().toLocaleTimeString("es-MX", { hour:"2-digit", minute:"2-digit" });
+        const ts = new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
         showStatus(`✅ Actualizado ${ts} · ${Object.keys(map).length} resultados`);
     } catch(e) {
         showStatus("⚠️ Sin API — datos locales");
     }
 }
-
 function showStatus(msg) {
     const el = document.getElementById("apiStatus");
     if (el) el.textContent = msg;
 }
 
-// ── Eliminados ─────────────────────────────────────────────────────────
+// ── Eliminados automáticos ─────────────────────────────────────────────
 function computeAutoEliminated() {
     const stats = {};
     getMatches().forEach(m => {
@@ -141,11 +97,12 @@ function getAllEliminated() {
     return computeAutoEliminated();
 }
 
-// ── Firebase (solo guarda eliminados manuales, ya no el campeón) ───────
+// ── Firebase ───────────────────────────────────────────────────────────
 function listenSettings() {
-    onSnapshot(doc(db, "settings", "tournament"), snap => {
+    onSnapshot(doc(db,"settings","tournament"), snap => {
         if (snap.exists()) {
-            // solo leemos el campeon, eliminaciones son automaticas
+            const sel = document.getElementById("championSelect");
+            if (sel && snap.data().champion) sel.value = snap.data().champion;
         }
         renderAll();
     });
@@ -156,6 +113,49 @@ async function saveSettings() {
         champion: sel ? sel.value : "",
     });
 }
+
+// ── Alerta de eliminación ──────────────────────────────────────────────
+function checkNewEliminations(elim) {
+    const newly = elim.filter(t => !prevEliminated.includes(t));
+    if (!newly.length) { prevEliminated = [...elim]; return; }
+    newly.forEach(team => {
+        const owner = participantsData.find(p => p.teams.includes(team));
+        if (!owner) return;
+        const f = window.getFlag ? window.getFlag(team) : "";
+        showEliminationAlert(f, team, owner.name);
+    });
+    prevEliminated = [...elim];
+}
+function showEliminationAlert(flag, team, owner) {
+    document.querySelectorAll(".elim-alert").forEach(e => e.remove());
+    const d = document.createElement("div");
+    d.className = "elim-alert";
+    d.innerHTML = `<div class="elim-alert-inner">
+        <span class="elim-skull">💀</span>
+        <div class="elim-alert-text">
+            <strong>${flag} ${team}</strong> fue eliminado
+            <span class="elim-alert-owner">Le tocó a ${owner}</span>
+        </div>
+        <button class="elim-close" onclick="this.closest('.elim-alert').remove()">✕</button>
+    </div>`;
+    document.body.appendChild(d);
+    setTimeout(() => { d.classList.add("elim-alert--out"); setTimeout(() => d.remove(), 400); }, 6000);
+}
+
+// ── Compartir por WhatsApp ─────────────────────────────────────────────
+window.shareWhatsApp = function() {
+    const elim = getAllEliminated();
+    const rnk  = participantsData
+        .map(p => ({ name: p.name, alive: p.teams.filter(t => !elim.includes(t)).length }))
+        .sort((a,b) => b.alive - a.alive);
+    const med   = ["🥇","🥈","🥉"];
+    const lines = rnk.map((p,i) =>
+        `${med[i]||(i+1)+"°"} ${p.name} — ${p.alive} equipo${p.alive!==1?"s":""} vivo${p.alive!==1?"s":""}`
+    ).join("\n");
+    const tot  = [...new Set(participantsData.flatMap(p=>p.teams))].length;
+    const txt  = `🏆 *Quiniela Familiar Mundial 2026*\n\n${lines}\n\n⚽ ${elim.length} de ${tot} equipos eliminados\n_${new Date().toLocaleDateString("es-MX",{day:"numeric",month:"short"})}_`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank");
+};
 
 // ── Render principal ───────────────────────────────────────────────────
 function renderAll() {
@@ -177,34 +177,22 @@ function renderSummary(elim) {
 
     const champBox = document.getElementById("championBox");
     if (!champBox) return;
-
     if (autoChampion) {
-        // ✅ Hay campeón oficial — mostrarlo con festejo
         const winner = participantsData.find(p => p.teams.includes(autoChampion));
-        champBox.innerHTML = `
-            <div class="champion-reveal">
-                <div class="champ-trophy">🏆</div>
-                <div class="champ-team">${window.getFlag?window.getFlag(autoChampion):""} ${autoChampion}</div>
-                <div class="champ-label">Campeón Mundial 2026</div>
-                ${winner ? `<div class="champ-winner">🎉 Ganador: <strong>${winner.name}</strong></div>` : ""}
-            </div>`;
+        champBox.innerHTML = `<div class="champion-reveal">
+            <div class="champ-trophy">🏆</div>
+            <div class="champ-team">${window.getFlag?window.getFlag(autoChampion):""} ${autoChampion}</div>
+            <div class="champ-label">Campeón Mundial 2026</div>
+            ${winner?`<div class="champ-winner">🎉 Ganador: <strong>${winner.name}</strong></div>`:""}
+        </div>`;
     } else {
-        // ⏳ Torneo en curso — mostrar equipos aún con chances
-        const alive = participantsData.map(p => ({
-            name:  p.name,
-            teams: p.teams.filter(t => !elim.includes(t)),
-        })).filter(p => p.teams.length > 0);
-
-        const topTeams = [...new Set(alive.flatMap(p => p.teams))].slice(0, 6);
-
-        champBox.innerHTML = `
-            <div class="champ-pending">
-                <span class="champ-pending-label">🏆 Campeón</span>
-                <span class="champ-pending-value">Por definirse</span>
-                <div class="champ-candidates">
-                    ${topTeams.map(t => `<span class="candidate">${t}</span>`).join("")}
-                </div>
-            </div>`;
+        const alive = [...new Set(participantsData
+            .flatMap(p => p.teams.filter(t => !elim.includes(t))))].slice(0,6);
+        champBox.innerHTML = `<div class="champ-pending">
+            <span class="champ-pending-label">🏆 Campeón</span>
+            <span class="champ-pending-value">Por definirse</span>
+            <div class="champ-candidates">${alive.map(t=>`<span class="candidate">${window.getFlag?window.getFlag(t):""} ${t}</span>`).join("")}</div>
+        </div>`;
     }
 }
 
@@ -212,59 +200,41 @@ function renderSummary(elim) {
 function renderTodayMatches(elim) {
     const container = document.getElementById("todayMatches");
     if (!container) return;
-
     const matches  = getMatches();
     const now      = new Date();
     const todayStr = now.toISOString().slice(0,10);
-
-    const live  = [];
-    const today = [];
-
+    const live = [], today = [];
     matches.forEach(m => {
         const kickoff = new Date(m.isoDate);
-        const dateStr = m.isoDate.slice(0,10);
         const diffMin = (now - kickoff) / 60000;
         const played  = m.homeScore !== null && m.awayScore !== null;
-
-        if (!played && diffMin >= -5 && diffMin <= 110) live.push({ ...m, kickoff });
-        else if (dateStr === todayStr)                   today.push({ ...m, kickoff, played });
+        if (!played && diffMin >= -5 && diffMin <= 110) live.push({...m, kickoff});
+        else if (m.isoDate.slice(0,10) === todayStr)    today.push({...m, kickoff, played});
     });
-
-    const toShow        = live.length > 0 ? live : today;
-    const isLiveSection = live.length > 0;
-
-    if (toShow.length === 0) {
-        container.innerHTML = `<p class="no-matches">Sin partidos hoy 📅</p>`;
-        return;
-    }
+    const toShow = live.length > 0 ? live : today;
+    const isLive = live.length > 0;
+    if (toShow.length === 0) { container.innerHTML = `<p class="no-matches">Sin partidos hoy 📅</p>`; return; }
 
     const makeCard = m => {
+        const played    = m.homeScore !== null && m.awayScore !== null;
         const homeElim  = elim.includes(m.home);
         const awayElim  = elim.includes(m.away);
         const homeOwner = participantsData.find(p=>p.teams.includes(m.home))?.name||"";
         const awayOwner = participantsData.find(p=>p.teams.includes(m.away))?.name||"";
-        const played    = m.homeScore !== null && m.awayScore !== null;
-
         let score;
         if (played) {
             const hw = m.homeScore > m.awayScore, aw = m.awayScore > m.homeScore;
             score = `<div class="td-score-wrap">
-                <div class="td-nums">
-                    <span class="td-sc ${hw?"win":""}">${m.homeScore}</span>
-                    <span class="td-sep">-</span>
-                    <span class="td-sc ${aw?"win":""}">${m.awayScore}</span>
-                </div>
+                <div class="td-nums"><span class="td-sc ${hw?"win":""}">${m.homeScore}</span><span class="td-sep">-</span><span class="td-sc ${aw?"win":""}">${m.awayScore}</span></div>
                 ${m.htHome!==null?`<div class="td-ht">MT ${m.htHome}-${m.htAway}</div>`:""}
-                <div class="td-final">Final</div>
-            </div>`;
-        } else if (isLiveSection) {
+                <div class="td-final">Final</div></div>`;
+        } else if (isLive) {
             score = `<div class="td-score-wrap"><a class="td-live-link" href="https://www.google.com/search?q=mundial+futbol+2026+en+vivo" target="_blank" rel="noopener"><div class="td-live">🔴 EN VIVO</div></a></div>`;
         } else {
             const hora = m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
             score = `<div class="td-score-wrap"><div class="td-time">${hora}</div></div>`;
         }
-
-        return `<div class="today-card ${isLiveSection&&!played?"today-live":""}">
+        return `<div class="today-card ${isLive&&!played?"today-live":""}">
             <div class="td-team ${homeElim?"elim-team":""}">
                 <span class="td-name">${window.getFlag?window.getFlag(m.home):""} ${m.home}</span>
                 ${homeOwner?`<span class="td-owner">👤 ${homeOwner}</span>`:""}
@@ -276,11 +246,9 @@ function renderTodayMatches(elim) {
             </div>
         </div>`;
     };
-
-    const heading = isLiveSection
+    const heading = isLive
         ? `<div class="today-heading live-heading"><span class="pulse-dot"></span> En vivo ahora</div>`
         : `<div class="today-heading">📅 Partidos de hoy</div>`;
-
     container.innerHTML = heading + toShow.map(makeCard).join("");
 }
 
@@ -296,10 +264,9 @@ function renderParticipants(elim) {
         player.teams.forEach(team => {
             const isElim = elim.includes(team);
             const isAuto = autoElim.includes(team);
-            const badge  = isAuto?"🔴":"";
-            const flag = window.getFlag ? window.getFlag(team) : "";
-            html += `<span class="team ${isElim?"eliminated":""}"
-                title="${isAuto?"Eliminado del torneo":"Activo"}">
+            const badge  = isAuto ? "🔴" : "";
+            const flag   = window.getFlag ? window.getFlag(team) : "";
+            html += `<span class="team ${isElim?"eliminated":""}" title="${isAuto?"Eliminado del torneo":""}">
                 ${flag} ${badge} ${team}</span>`;
         });
         html += `</div>`;
@@ -326,35 +293,25 @@ function renderRanking(elim) {
 function renderMatches(elim) {
     const container = document.getElementById("matchesContainer");
     container.innerHTML = "";
-    const matches = getMatches();
-    const now     = new Date();
+    const matches  = getMatches();
+    const now      = new Date();
     const todayStr = now.toISOString().slice(0,10);
-
-    // ── Separar en 3 bloques: en vivo, próximos, pasados ──────────────
-    const live    = [];
-    const upcoming= [];
-    const past    = [];
+    const live = [], upcoming = [], past = [];
 
     matches.forEach(m => {
         const kickoff = new Date(m.isoDate);
         const played  = m.homeScore !== null && m.awayScore !== null;
         const diffMin = (now - kickoff) / 60000;
         const isLive  = !played && diffMin >= -5 && diffMin <= 110;
-
-        if (isLive)   live.push({...m, kickoff});
-        else if (!played) upcoming.push({...m, kickoff});
-        else          past.push({...m, kickoff});
+        if (isLive)        live.push({...m, kickoff});
+        else if (!played)  upcoming.push({...m, kickoff});
+        else               past.push({...m, kickoff});
     });
-
-    // Próximos: más cercano primero
     upcoming.sort((a,b) => a.kickoff - b.kickoff);
-    // Pasados: más reciente primero
-    past.sort((a,b) => b.kickoff - a.kickoff);
+    past.sort((a,b)     => b.kickoff - a.kickoff);
 
-    // ── Render de una tarjeta ──────────────────────────────────────────
     const goalStr = goals => goals.length
-        ? goals.map(g=>`<span class="goalscorer">⚽ ${g.name}${g.penalty?" (P)":""} ${g.minute}'</span>`).join("")
-        : "";
+        ? goals.map(g=>`<span class="goalscorer">⚽ ${g.name}${g.penalty?" (P)":""} ${g.minute}'</span>`).join("") : "";
 
     function buildCard(m, isLive) {
         const played    = m.homeScore !== null && m.awayScore !== null;
@@ -363,38 +320,23 @@ function renderMatches(elim) {
         const homeOwner = participantsData.find(p=>p.teams.includes(m.home))?.name||"";
         const awayOwner = participantsData.find(p=>p.teams.includes(m.away))?.name||"";
         const groupTag  = m.group ? `<span class="match-group-tag">Grupo ${m.group}</span>` : "";
-
         let scoreBlock;
         if (played) {
             const hw = m.homeScore > m.awayScore, aw = m.awayScore > m.homeScore;
             scoreBlock = `<div class="score-box">
-                <div class="score-nums">
-                    <span class="sc ${hw?"win":""}">${m.homeScore}</span>
-                    <span class="sc-sep">-</span>
-                    <span class="sc ${aw?"win":""}">${m.awayScore}</span>
-                </div>
+                <div class="score-nums"><span class="sc ${hw?"win":""}">${m.homeScore}</span><span class="sc-sep">-</span><span class="sc ${aw?"win":""}">${m.awayScore}</span></div>
                 ${m.htHome!==null?`<div class="ht-score">MT ${m.htHome}-${m.htAway}</div>`:""}
-                <div class="final-badge">Final</div>
-            </div>`;
+                <div class="final-badge">Final</div></div>`;
         } else if (isLive) {
-            scoreBlock = `<div class="score-box">
-                <a class="live-link" href="https://www.google.com/search?q=mundial+futbol+2026+en+vivo" target="_blank" rel="noopener">
-                    <div class="live-badge">🔴 EN VIVO</div>
-                </a>
-            </div>`;
+            scoreBlock = `<div class="score-box"><a class="live-link" href="https://www.google.com/search?q=mundial+futbol+2026+en+vivo" target="_blank" rel="noopener"><div class="live-badge">🔴 EN VIVO</div></a></div>`;
         } else {
-            const hora = m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
-            // Mostrar "Hoy" si es el mismo día
-            const dayStr = m.isoDate.slice(0,10) === todayStr ? "Hoy" : "";
-            scoreBlock = `<div class="score-box">
-                <div class="kick-time">${dayStr ? `<span class="today-tag">Hoy</span>` : ""}${hora}</div>
-            </div>`;
+            const hora   = m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+            const dayTag = m.isoDate.slice(0,10)===todayStr ? `<span class="today-tag">Hoy</span>` : "";
+            scoreBlock = `<div class="score-box"><div class="kick-time">${dayTag}${hora}</div></div>`;
         }
-
         const card = document.createElement("div");
         card.className = `match-card ${played?"played":""} ${isLive?"live-card":""}`;
-        card.innerHTML = `
-            ${groupTag}
+        card.innerHTML = `${groupTag}
             <div class="match-team ${homeElim?"elim-team":""}">
                 <div class="team-name">${window.getFlag?window.getFlag(m.home):""} ${m.home}</div>
                 ${homeOwner?`<div class="owner">👤 ${homeOwner}</div>`:""}
@@ -409,27 +351,94 @@ function renderMatches(elim) {
         return card;
     }
 
-    // ── Sección helper ─────────────────────────────────────────────────
-    function addSection(label, icon, items, isLiveSection = false, collapsible = false) {
+    function addSection(label, icon, items, isLiveSection=false, collapsible=false) {
         if (items.length === 0) return;
-
-        // Header de la sección
         const header = document.createElement("div");
-        header.className = `cal-section-header ${isLiveSection ? "cal-live-header" : ""}`;
-        header.innerHTML = `<span>${icon} ${label}</span>
-            <span class="cal-count">${items.length} partido${items.length!==1?"s":""}</span>`;
+        header.className = `cal-section-header ${isLiveSection?"cal-live-header":""}`;
+        header.innerHTML = `<span>${icon} ${label}</span><span class="cal-count">${items.length} partido${items.length!==1?"s":""}</span>`;
         container.appendChild(header);
 
-        // Body (colapsable o no)
         const body = document.createElement("div");
         body.className = "cal-section-body" + (collapsible ? " cal-collapsed" : "");
         if (collapsible) body.id = "past-body";
         container.appendChild(body);
 
-        // Agrupar por fecha y ordenar cronológicamente
         const byDate = {};
         items.forEach(m => {
             const key = m.isoDate.slice(0,10);
             if (!byDate[key]) byDate[key] = {
                 label: m.kickoff.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}),
                 games: []
+            };
+            byDate[key].games.push(m);
+        });
+
+        const sorted = Object.keys(byDate).sort(collapsible ? (a,b)=>b.localeCompare(a) : (a,b)=>a.localeCompare(b));
+        sorted.forEach(isoDay => {
+            const {label: dayLabel, games} = byDate[isoDay];
+            const dateHdr = document.createElement("div");
+            dateHdr.className = "date-header";
+            dateHdr.textContent = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
+            body.appendChild(dateHdr);
+            games.forEach(m => body.appendChild(buildCard(m, isLiveSection)));
+        });
+
+        if (collapsible) {
+            const btn = document.createElement("button");
+            btn.className = "cal-expand-btn";
+            btn.textContent = "▼ Ver partidos anteriores";
+            btn.onclick = () => {
+                body.classList.toggle("cal-collapsed");
+                btn.textContent = body.classList.contains("cal-collapsed") ? "▼ Ver partidos anteriores" : "▲ Ocultar anteriores";
+            };
+            container.appendChild(btn);
+        }
+    }
+
+    addSection("En vivo",   "🔴", live,     true,  false);
+    addSection("Próximos",  "📅", upcoming, false, false);
+    addSection("Resultados","✅", past,     false, true);
+}
+
+// ── Gráfica ────────────────────────────────────────────────────────────
+function renderChart(elim) {
+    const labels = participantsData.map(p=>p.name);
+    const values = participantsData.map(p=>p.teams.filter(t=>!elim.includes(t)).length);
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("probabilityChart"),{
+        type:"bar",
+        data:{labels,datasets:[{label:"Equipos vivos",data:values,
+            backgroundColor:values.map(v=>v===0?"#ef4444":v===1?"#f97316":"#22c55e"),borderRadius:6}]},
+        options:{responsive:true,
+            plugins:{legend:{labels:{color:"white"}}},
+            scales:{x:{ticks:{color:"white"}},y:{ticks:{color:"white",stepSize:1},beginAtZero:true}}}
+    });
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────
+function initTabs() {
+    document.querySelectorAll(".tab-btn").forEach(btn=>{
+        btn.addEventListener("click",()=>{
+            document.querySelectorAll(".tab-content").forEach(t=>t.classList.remove("active"));
+            document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+            document.getElementById(btn.dataset.tab).classList.add("active");
+            btn.classList.add("active");
+            if (btn.dataset.tab==="estadisticas") renderChart(getAllEliminated());
+            if (btn.dataset.tab==="eliminatoria" && window.renderBracket) {
+                window.renderBracket();
+                clearInterval(window._bracketTimer);
+                window._bracketTimer = setInterval(window.renderBracket, 5*60*1000);
+            } else if (btn.dataset.tab !== "eliminatoria") {
+                clearInterval(window._bracketTimer);
+            }
+        });
+    });
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+initTabs();
+renderAll();
+fetchLiveScores().then(()=>renderAll());
+listenSettings();
+setInterval(()=>fetchLiveScores().then(()=>renderAll()), 3*60*1000);
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
