@@ -49,9 +49,8 @@ h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #94a3b8; }
 .team {
     display: inline-block; margin: 3px; padding: 5px 9px;
     background: #1d4ed8; border-radius: 6px; font-size: .82rem;
-    cursor: pointer; user-select: none; transition: background .2s;
+    transition: background .2s;
 }
-.team:hover { background: #1e40af; }
 .team.eliminated { background: #7f1d1d; text-decoration: line-through; opacity: .55; }
 
 /* ── Champion select ── */
