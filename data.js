@@ -13,6 +13,45 @@ const participantsData = [
     { name: "Meche",         teams: ["Bélgica", "Haití", "Paraguay", "Estados Unidos"] },
     { name: "Uriel",         teams: ["Turquía", "Alemania", "Qatar", "Marruecos"] },
     { name: "Karla",         teams: ["Francia", "Chequia", "Japón", "Países Bajos"] }
+
+  // ── RONDA DE 32 ──
+  { key:"R32_01", isoDate:"2026-06-28T12:00", home:"Sudáfrica",         away:"Canadá",              homeScore:null, awayScore:null },
+  { key:"R32_02", isoDate:"2026-06-29T12:00", home:"Brasil",            away:"Japón",               homeScore:null, awayScore:null },
+  { key:"R32_03", isoDate:"2026-06-29T16:30", home:"Alemania",          away:"Paraguay",            homeScore:null, awayScore:null },
+  { key:"R32_04", isoDate:"2026-06-29T19:00", home:"Países Bajos",      away:"Marruecos",           homeScore:null, awayScore:null },
+  { key:"R32_05", isoDate:"2026-06-30T12:00", home:"Costa de Marfil",   away:"Noruega",             homeScore:null, awayScore:null },
+  { key:"R32_06", isoDate:"2026-06-30T17:00", home:"Francia",           away:"Suecia",              homeScore:null, awayScore:null },
+  { key:"R32_07", isoDate:"2026-06-30T19:00", home:"México",            away:"Ecuador",             homeScore:null, awayScore:null },
+  { key:"R32_08", isoDate:"2026-07-01T12:00", home:"Inglaterra",        away:"RD del Congo",        homeScore:null, awayScore:null },
+  { key:"R32_09", isoDate:"2026-07-01T13:00", home:"Bélgica",           away:"Senegal",             homeScore:null, awayScore:null },
+  { key:"R32_10", isoDate:"2026-07-01T17:00", home:"Estados Unidos",    away:"Bosnia y Herzegovina",homeScore:null, awayScore:null },
+  { key:"R32_11", isoDate:"2026-07-02T12:00", home:"España",            away:"Austria",             homeScore:null, awayScore:null },
+  { key:"R32_12", isoDate:"2026-07-02T19:00", home:"Portugal",          away:"Croacia",             homeScore:null, awayScore:null },
+  { key:"R32_13", isoDate:"2026-07-02T20:00", home:"Suiza",             away:"Argelia",             homeScore:null, awayScore:null },
+  { key:"R32_14", isoDate:"2026-07-03T13:00", home:"Australia",         away:"Egipto",              homeScore:null, awayScore:null },
+  { key:"R32_15", isoDate:"2026-07-03T18:00", home:"Argentina",         away:"Cabo Verde",          homeScore:null, awayScore:null },
+  { key:"R32_16", isoDate:"2026-07-03T20:30", home:"Colombia",          away:"Ghana",               homeScore:null, awayScore:null },
+  // ── OCTAVOS DE FINAL ──
+  { key:"R16_01", isoDate:"2026-07-04T12:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_02", isoDate:"2026-07-04T17:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_03", isoDate:"2026-07-05T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_04", isoDate:"2026-07-05T18:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_05", isoDate:"2026-07-06T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_06", isoDate:"2026-07-06T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_07", isoDate:"2026-07-07T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_08", isoDate:"2026-07-07T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  // ── CUARTOS DE FINAL ──
+  { key:"QF_01",  isoDate:"2026-07-09T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"QF_02",  isoDate:"2026-07-10T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"QF_03",  isoDate:"2026-07-11T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"QF_04",  isoDate:"2026-07-12T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  // ── SEMIFINALES ──
+  { key:"SF_01",  isoDate:"2026-07-14T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"SF_02",  isoDate:"2026-07-15T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  // ── TERCER LUGAR ──
+  { key:"TP_01",  isoDate:"2026-07-18T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  // ── GRAN FINAL ──
+  { key:"FIN_01", isoDate:"2026-07-19T17:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
 ];
 
 // ── Calendario completo Mundial 2026 ───────────────────────────────────
@@ -104,4 +143,43 @@ const allMatches = [
   { key:"L4", group:"L", isoDate:"2026-06-23T17:00", home:"Panamá",              away:"Croacia",            homeScore:0, awayScore:1 },
   { key:"L5", group:"L", isoDate:"2026-06-27T15:00", home:"Panamá",              away:"Inglaterra",         homeScore:0, awayScore:2 },
   { key:"L6", group:"L", isoDate:"2026-06-27T15:00", home:"Croacia",             away:"Ghana",              homeScore:2, awayScore:1 },
+
+  // ── RONDA DE 32 ──
+  { key:"R32_01", isoDate:"2026-06-28T12:00", home:"Sudáfrica",         away:"Canadá",              homeScore:null, awayScore:null },
+  { key:"R32_02", isoDate:"2026-06-29T12:00", home:"Brasil",            away:"Japón",               homeScore:null, awayScore:null },
+  { key:"R32_03", isoDate:"2026-06-29T16:30", home:"Alemania",          away:"Paraguay",            homeScore:null, awayScore:null },
+  { key:"R32_04", isoDate:"2026-06-29T19:00", home:"Países Bajos",      away:"Marruecos",           homeScore:null, awayScore:null },
+  { key:"R32_05", isoDate:"2026-06-30T12:00", home:"Costa de Marfil",   away:"Noruega",             homeScore:null, awayScore:null },
+  { key:"R32_06", isoDate:"2026-06-30T17:00", home:"Francia",           away:"Suecia",              homeScore:null, awayScore:null },
+  { key:"R32_07", isoDate:"2026-06-30T19:00", home:"México",            away:"Ecuador",             homeScore:null, awayScore:null },
+  { key:"R32_08", isoDate:"2026-07-01T12:00", home:"Inglaterra",        away:"RD del Congo",        homeScore:null, awayScore:null },
+  { key:"R32_09", isoDate:"2026-07-01T13:00", home:"Bélgica",           away:"Senegal",             homeScore:null, awayScore:null },
+  { key:"R32_10", isoDate:"2026-07-01T17:00", home:"Estados Unidos",    away:"Bosnia y Herzegovina",homeScore:null, awayScore:null },
+  { key:"R32_11", isoDate:"2026-07-02T12:00", home:"España",            away:"Austria",             homeScore:null, awayScore:null },
+  { key:"R32_12", isoDate:"2026-07-02T19:00", home:"Portugal",          away:"Croacia",             homeScore:null, awayScore:null },
+  { key:"R32_13", isoDate:"2026-07-02T20:00", home:"Suiza",             away:"Argelia",             homeScore:null, awayScore:null },
+  { key:"R32_14", isoDate:"2026-07-03T13:00", home:"Australia",         away:"Egipto",              homeScore:null, awayScore:null },
+  { key:"R32_15", isoDate:"2026-07-03T18:00", home:"Argentina",         away:"Cabo Verde",          homeScore:null, awayScore:null },
+  { key:"R32_16", isoDate:"2026-07-03T20:30", home:"Colombia",          away:"Ghana",               homeScore:null, awayScore:null },
+  // ── OCTAVOS DE FINAL ──
+  { key:"R16_01", isoDate:"2026-07-04T12:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_02", isoDate:"2026-07-04T17:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_03", isoDate:"2026-07-05T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_04", isoDate:"2026-07-05T18:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_05", isoDate:"2026-07-06T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_06", isoDate:"2026-07-06T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_07", isoDate:"2026-07-07T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"R16_08", isoDate:"2026-07-07T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  // ── CUARTOS DE FINAL ──
+  { key:"QF_01",  isoDate:"2026-07-09T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"QF_02",  isoDate:"2026-07-10T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"QF_03",  isoDate:"2026-07-11T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"QF_04",  isoDate:"2026-07-12T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  // ── SEMIFINALES ──
+  { key:"SF_01",  isoDate:"2026-07-14T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  { key:"SF_02",  isoDate:"2026-07-15T20:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  // ── TERCER LUGAR ──
+  { key:"TP_01",  isoDate:"2026-07-18T16:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
+  // ── GRAN FINAL ──
+  { key:"FIN_01", isoDate:"2026-07-19T17:00", home:"Por definir",       away:"Por definir",         homeScore:null, awayScore:null },
 ];
