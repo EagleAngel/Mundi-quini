@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.json">
+<title>🏆 Quiniela Mundial 2026</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="data.js"></script>
+<script src="flags.js"></script>
+<script src="bracket.js"></script>
+<script type="module" src="app.js"></script>
+</head>
+<body>
+
+<h1>🏆 Quiniela Familiar 2026</h1>
+<div id="apiStatus">Cargando marcadores...</div>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="resumen">🏆 Resumen</button>
+    <button class="tab-btn" data-tab="rankingTab">📊 Ranking</button>
+    <button class="tab-btn" data-tab="calendario">⚽ Calendario</button>
+    <button class="tab-btn" data-tab="eliminatoria">🔱 Eliminatoria</button>
+    <button class="tab-btn" data-tab="estadisticas">📈 Stats</button>
+</div>
+
+<!-- RESUMEN -->
+<div id="resumen" class="tab-content active">
+    <div class="dashboard">
+        <div class="card"><h2>Participantes</h2><div class="big" id="totalPlayers">-</div></div>
+        <div class="card"><h2>Equipos vivos</h2><div class="big" id="aliveTeamsCount">-</div></div>
+    </div>
+    <div id="championBox"></div>
+    <div id="todayMatches"></div>
+    <p class="legend">🔴 eliminado automáticamente por resultados del torneo</p>
+    <h2>👥 Participantes</h2>
+    <div id="participantsContainer"></div>
+</div>
+
+<!-- RANKING -->
+<div id="rankingTab" class="tab-content">
+    <h2>⭐ Ranking</h2>
+    <div id="ranking"></div>
+</div>
+
+<!-- CALENDARIO -->
+<div id="calendario" class="tab-content">
+    <h2>⚽ Calendario y Marcadores</h2>
+    <p style="font-size:.75rem;opacity:.4;margin-bottom:14px">Se actualiza automáticamente cada 3 minutos</p>
+    <div id="matchesContainer"></div>
+</div>
+
+<!-- ELIMINATORIA -->
+<div id="eliminatoria" class="tab-content">
+    <h2>🔱 Bracket Eliminatoria</h2>
+    <p style="font-size:.75rem;opacity:.4;margin-bottom:14px">
+        Los equipos aparecen conforme avanza el torneo · 
+        <span style="color:#f59e0b">●</span> equipo de la familia
+    </p>
+    <div id="bracketContainer"><div class="bk-loading">Abre esta pestaña para cargar el bracket</div></div>
+</div>
+
+<!-- STATS -->
+<div id="estadisticas" class="tab-content">
+    <h2>📈 Equipos vivos por participante</h2>
+    <canvas id="probabilityChart"></canvas>
+</div>
+
+</body>
+</html>
