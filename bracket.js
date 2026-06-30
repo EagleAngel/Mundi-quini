@@ -129,12 +129,38 @@ window.renderBracket = async function () {
         const data = await res.json();
         const ROUNDS = ["Round of 32","Round of 16","Quarter-final","Semi-final","Final","Match for third place"];
         ROUNDS.forEach(r => rounds[r] = []);
+
+        // ── Paso 1: mapear num → {winner, loser} para resolver W##/L## ──
+        const resultByNum = {};
+        data.matches.forEach(m => {
+            if (m.num == null || !m.score) return;
+            const ft = m.score.ft;
+            const pk = m.score.p || null;
+            let winner = m.team1, loser = m.team2;
+            const homeWon = pk ? pk[0] > pk[1] : ft[0] > ft[1];
+            if (!homeWon) { winner = m.team2; loser = m.team1; }
+            resultByNum[m.num] = { winner, loser };
+        });
+
+        // Resuelve "W73" → nombre real del equipo, recursivamente por si encadena
+        function resolve(code, depth = 0) {
+            if (!code || depth > 5) return code;
+            const mW = code.match(/^W(\d+)$/);
+            const mL = code.match(/^L(\d+)$/);
+            if (mW && resultByNum[mW[1]]) return resolve(resultByNum[mW[1]].winner, depth+1);
+            if (mL && resultByNum[mL[1]]) return resolve(resultByNum[mL[1]].loser,  depth+1);
+            return code; // no resoluble aún (ej. "2A", "3A/B/C/D/F", o el partido aún no se jugó)
+        }
+
+        // ── Paso 2: armar las rondas, resolviendo placeholders ──
         data.matches.forEach(m => {
             if (!ROUNDS.includes(m.round)) return;
             const sc = m.score?.ft || null;
             const pk = m.score?.p  || null;
             rounds[m.round].push({
-                date: m.date, home: m.team1, away: m.team2,
+                date: m.date,
+                home: resolve(m.team1),
+                away: resolve(m.team2),
                 hs: sc?.[0] ?? null, as: sc?.[1] ?? null,
                 hp: pk?.[0] ?? null, ap: pk?.[1] ?? null,
             });
