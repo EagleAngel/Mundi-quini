@@ -33,15 +33,35 @@ function getMatches() {
     return allMatches.map(m => {
         const key  = `${m.home}|${m.away}`;
         const live = liveScores[key];
-        return live
-            ? { ...m, homeScore: live.homeScore, awayScore: live.awayScore,
-                htHome: live.htHome, htAway: live.htAway,
-                goals1: live.goals1, goals2: live.goals2 }
-            : { ...m, htHome: null, htAway: null, goals1: [], goals2: [] };
+        if (!live) return { ...m, htHome: null, htAway: null, goals1: [], goals2: [] };
+
+        const isoDate = live.cdmxDate ? live.cdmxDate.toISOString().slice(0,16) : m.isoDate;
+
+        return { ...m,
+            isoDate,
+            homeScore: live.homeScore, awayScore: live.awayScore,
+            effHome: live.effHome ?? live.homeScore, effAway: live.effAway ?? live.awayScore,
+            penH: live.penH ?? null, penA: live.penA ?? null,
+            htHome: live.htHome ?? null, htAway: live.htAway ?? null,
+            goals1: live.goals1 || [], goals2: live.goals2 || [],
+        };
     });
 }
 
 // ── Fetch API ──────────────────────────────────────────────────────────
+// Convierte "HH:MM UTC-X" del estadio a hora real de CDMX (siempre UTC-6)
+function toCDMX(dateStr, timeStr) {
+    if (!timeStr || !timeStr.includes("UTC")) return null;
+    const [hm, tz] = timeStr.split(" UTC");
+    const [hh, mm] = hm.split(":").map(Number);
+    const stadiumOffset = parseInt(tz, 10);
+    const utcDate = new Date(Date.UTC(
+        Number(dateStr.slice(0,4)), Number(dateStr.slice(5,7))-1, Number(dateStr.slice(8,10)),
+        hh - stadiumOffset, mm
+    ));
+    return new Date(utcDate.getTime() - 6*60*60*1000);
+}
+
 async function fetchLiveScores() {
     showStatus("⏳ Actualizando...");
     try {
@@ -54,19 +74,34 @@ async function fetchLiveScores() {
             if (!m.score) return;
             const homeEs = es(m.team1);
             const awayEs = es(m.team2);
+            const ft = m.score.ft;
+            const pk = m.score.p || null; // penales si hubo empate en eliminatoria
+
+            // Determinar marcador "efectivo" para saber quién avanza
+            // (si hay penales, el ganador real es quien ganó penales)
+            let effHome = ft[0], effAway = ft[1];
+            if (pk) {
+                // Forzamos a que el ganador de penales tenga el marcador "mayor" para la lógica de eliminación,
+                // pero seguimos mostrando el marcador real de tiempo regular en pantalla.
+                effHome = pk[0] > pk[1] ? 1 : 0;
+                effAway = pk[0] > pk[1] ? 0 : 1;
+            }
+
             map[`${homeEs}|${awayEs}`] = {
-                homeScore: m.score.ft[0], awayScore: m.score.ft[1],
+                homeScore: ft[0], awayScore: ft[1],
+                effHome, effAway,            // usado solo para saber el ganador real
+                penH: pk ? pk[0] : null, penA: pk ? pk[1] : null,
                 htHome: m.score.ht?.[0] ?? null, htAway: m.score.ht?.[1] ?? null,
                 goals1: m.goals1 || [], goals2: m.goals2 || [],
             };
             if (m.round === "Final") {
-                champion = m.score.ft[0] > m.score.ft[1] ? homeEs : awayEs;
+                champion = effHome > effAway ? homeEs : awayEs;
             }
         });
         liveScores   = map;
         autoChampion = champion;
-        const ts = new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
-        showStatus(`✅ Actualizado ${ts} · ${Object.keys(map).length} resultados`);
+        const ts = new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:"America/Mexico_City"});
+        showStatus(`✅ Actualizado ${ts} CDMX · ${Object.keys(map).length} resultados`);
     } catch(e) {
         showStatus("⚠️ Sin API — datos locales");
     }
@@ -146,10 +181,11 @@ function computeAutoEliminated() {
     matches.forEach(m => {
         if (m.homeScore === null || m.awayScore === null) return;
         if (m.group) return; // ignorar fase de grupos aquí
-        // Perdedor de partido eliminatorio
-        if (m.homeScore < m.awayScore) elim.push(m.home);
-        else if (m.homeScore > m.awayScore) elim.push(m.away);
-        // Empate con penales: el app.js no tiene penales en allMatches, la API sí
+        // Usar effHome/effAway: ya resuelve empates por penales si los hubo
+        const eh = m.effHome ?? m.homeScore;
+        const ea = m.effAway ?? m.awayScore;
+        if (eh < ea)      elim.push(m.home);
+        else if (eh > ea) elim.push(m.away);
     });
 
     return [...new Set(elim)];
@@ -263,7 +299,9 @@ function renderTodayMatches(elim) {
     if (!container) return;
     const matches  = getMatches();
     const now      = new Date();
-    const todayStr = now.toISOString().slice(0,10);
+    const todayStr = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Mexico_City", year:"numeric", month:"2-digit", day:"2-digit"
+    }).format(now);
     const live = [], today = [];
     matches.forEach(m => {
         const kickoff = new Date(m.isoDate);
@@ -292,7 +330,7 @@ function renderTodayMatches(elim) {
         } else if (isLive) {
             score = `<div class="td-score-wrap"><a class="td-live-link" href="https://www.google.com/search?q=mundial+futbol+2026+en+vivo" target="_blank" rel="noopener"><div class="td-live">🔴 EN VIVO</div></a></div>`;
         } else {
-            const hora = m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+            const hora = m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:"America/Mexico_City"});
             score = `<div class="td-score-wrap"><div class="td-time">${hora}</div></div>`;
         }
         return `<div class="today-card ${isLive&&!played?"today-live":""}">
@@ -356,7 +394,9 @@ function renderMatches(elim) {
     container.innerHTML = "";
     const matches  = getMatches();
     const now      = new Date();
-    const todayStr = now.toISOString().slice(0,10);
+    const todayStr = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Mexico_City", year:"numeric", month:"2-digit", day:"2-digit"
+    }).format(now);
     const live = [], upcoming = [], past = [];
 
     matches.forEach(m => {
@@ -391,7 +431,7 @@ function renderMatches(elim) {
         } else if (isLive) {
             scoreBlock = `<div class="score-box"><a class="live-link" href="https://www.google.com/search?q=mundial+futbol+2026+en+vivo" target="_blank" rel="noopener"><div class="live-badge">🔴 EN VIVO</div></a></div>`;
         } else {
-            const hora   = m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+            const hora   = m.kickoff.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:"America/Mexico_City"});
             const dayTag = m.isoDate.slice(0,10)===todayStr ? `<span class="today-tag">Hoy</span>` : "";
             scoreBlock = `<div class="score-box"><div class="kick-time">${dayTag}${hora}</div></div>`;
         }
@@ -428,7 +468,7 @@ function renderMatches(elim) {
         items.forEach(m => {
             const key = m.isoDate.slice(0,10);
             if (!byDate[key]) byDate[key] = {
-                label: m.kickoff.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}),
+                label: m.kickoff.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",timeZone:"America/Mexico_City"}),
                 games: []
             };
             byDate[key].games.push(m);
