@@ -71,28 +71,35 @@ async function fetchLiveScores() {
         const map = {};
         let champion = "";
         data.matches.forEach(m => {
-            if (!m.score) return;
             const homeEs = es(m.team1);
             const awayEs = es(m.team2);
-            const ft = m.score.ft;
-            const pk = m.score.p || null; // penales si hubo empate en eliminatoria
+            const key = `${homeEs}|${awayEs}`;
 
-            // Determinar marcador "efectivo" para saber quién avanza
-            // (si hay penales, el ganador real es quien ganó penales)
+            // Hora real CDMX: se calcula SIEMPRE, tenga o no resultado
+            const cdmxDate = toCDMX(m.date, m.time);
+
+            if (!m.score) {
+                // Partido aún no jugado: guardamos solo la hora correcta
+                if (cdmxDate) map[key] = { homeScore: null, awayScore: null, cdmxDate };
+                return;
+            }
+
+            const ft = m.score.ft;
+            const pk = m.score.p || null;
+
             let effHome = ft[0], effAway = ft[1];
             if (pk) {
-                // Forzamos a que el ganador de penales tenga el marcador "mayor" para la lógica de eliminación,
-                // pero seguimos mostrando el marcador real de tiempo regular en pantalla.
                 effHome = pk[0] > pk[1] ? 1 : 0;
                 effAway = pk[0] > pk[1] ? 0 : 1;
             }
 
-            map[`${homeEs}|${awayEs}`] = {
+            map[key] = {
                 homeScore: ft[0], awayScore: ft[1],
-                effHome, effAway,            // usado solo para saber el ganador real
+                effHome, effAway,
                 penH: pk ? pk[0] : null, penA: pk ? pk[1] : null,
                 htHome: m.score.ht?.[0] ?? null, htAway: m.score.ht?.[1] ?? null,
                 goals1: m.goals1 || [], goals2: m.goals2 || [],
+                cdmxDate,
             };
             if (m.round === "Final") {
                 champion = effHome > effAway ? homeEs : awayEs;
